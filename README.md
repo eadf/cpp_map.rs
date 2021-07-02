@@ -12,6 +12,8 @@ I needed a data structure that could emulate a C++ map, and it's pointer based i
 More specifically it needs to emulate the insertion position hint functionality as the keys I intend to 
 use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.
 
+I also needed to be able to replace the key of an already inserted item w/o altering the order. - Don't ask. 
+
 The current implementation uses a double linked Vec list and it only supports linear search.
 
 ## License

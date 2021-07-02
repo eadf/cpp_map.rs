@@ -1,10 +1,12 @@
-//           Copyright Eadf (github.com/eadf)
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//           Copyright 2021 Eadf (github.com/eadf)
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
 
-//! Data structure that emulates a C++ map and it's pointer based iterators.
-//! This implementation does not (yet) support anything other than linear search.
+//! Data structure emulating a C++ map and it's pointer based iterators.
+//! The current implementation uses a double linked Vec list and it only supports linear search.
 
 use std::cell::RefCell;
 use std::cmp::Ordering;

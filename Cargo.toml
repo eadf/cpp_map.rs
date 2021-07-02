@@ -1,0 +1,21 @@
+[package]
+name = "cpp_map"
+description = "A simple C++ map emulator"
+version = "0.0.1"
+authors = ["eadf"]
+license = "MIT OR Apache-2.0"
+edition = "2018"
+readme = "README.md"
+keywords = ["c++", "map"]
+exclude = [
+    "img/*",
+    "idea/*",
+    ".github/*",
+    "examples/input_data/*"
+]
+
+[dependencies]
+thiserror = "1.0"
+
+[badges]
+maintenance = { status = "actively-developed" }

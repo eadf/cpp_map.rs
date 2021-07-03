@@ -1,4 +1,3 @@
-[![Crates.io](https://meritbadge.herokuapp.com/cpp_map)](https://crates.io/crates/cpp_map)
 [![Documentation](https://docs.rs/cpp_map/badge.svg)](https://docs.rs/cpp_map)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)
@@ -6,15 +5,15 @@
 
 
 # cpp_map.rs
-A simple C++ map emulator for Rust. Probably not useful for anyone. 
+A simple C++ std::map emulator for Rust. Probably not useful for anyone. 
 
-I needed a data structure that could emulate a C++ map, and it's pointer based interators.
+I needed a data structure that could emulate a C++ std::map, and it's pointer based interators.
 More specifically it needs to emulate the insertion position hint functionality as the keys I intend to 
 use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.
 
 I also needed to be able to replace the key of an already inserted item w/o altering the order. - Don't ask. 
 
-The current implementation uses a double linked Vec list and it only supports linear search.
+The current implementation uses a double linked Vec list, and it only supports sequential search.
 
 ## License
 

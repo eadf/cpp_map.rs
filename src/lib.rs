@@ -5,13 +5,24 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Data structure emulating a C++ map and it's pointer based iterators.
-//! The current implementation uses a double linked Vec list and it only supports linear search.
-
+//! A simple data structure emulating a C++ std::map. Probably not useful for anyone.
+//!
+//! I needed a data structure that could emulate a C++ std::map, and it's pointer based interators.
+//!
+//! More specifically it needs to emulate the insertion position hint functionality as the keys I intend to
+//! use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.
+//!
+//! I also needed to be able to replace the key of an already inserted item w/o altering the order. - Don't ask.
+//!
+//! The current implementation uses a double linked std::vec::Vec list, and it only supports sequential search.
+//!
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::rc::Rc;
+
+/// Indicates that an iterator has passed beyond the limits of the list.
+pub const OUT_OF_BOUNDS:usize = usize::MAX;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MapError {
@@ -28,14 +39,14 @@ struct Node<T, U>
         T: Clone + Debug,
         U: Clone + Debug,
 {
-    prev: usize,
-    next: usize,
-    key: T,
-    value: U,
+    prev_: usize,
+    next_: usize,
+    key_: T,
+    value_: U,
 }
 
 /// A double linked min list.
-/// The head (top/front) of the list is the first item (also called top). Sorted Order::Less than other items
+/// The head (top/front) of the list is the first item. Sorted Order::Less than other items.
 /// The tail (bottom/back) is the last item of the list. Sorted Order::Greater than other items.
 #[derive(Clone, Debug)]
 pub struct LinkedList<T, U>
@@ -56,8 +67,8 @@ impl<T, U> Default for LinkedList<T, U>
 {
     fn default() -> Self {
         Self {
-            head_: usize::MAX,
-            tail_: usize::MAX,
+            head_: OUT_OF_BOUNDS,
+            tail_: OUT_OF_BOUNDS,
             nodes_: Vec::new(),
             id_pool_: Vec::new(),
         }
@@ -68,11 +79,11 @@ impl<T, U> Default for LinkedList<T, U>
 /// borrow checker work-around
 struct EraseOperation {
     // (node index, next index)
-    change_prev: Option<(usize, usize)>,
+    change_prev_: Option<(usize, usize)>,
     // the node to erase
-    erase: usize,
+    erase_: usize,
     // (node index, pre index)
-    change_next: Option<(usize, usize)>,
+    change_next_: Option<(usize, usize)>,
 }
 
 #[allow(dead_code)]
@@ -82,15 +93,14 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         U: Clone + Debug,
 {
     pub fn iter(&self) -> ListIterator<'_, T, U> {
-        //println!("create iterator with my_next:{}", self.head);
         ListIterator {
-            list: self,
-            my_next: self.head_,
+            list_: self,
+            my_next_: self.head_,
         }
     }
 
     #[inline(always)]
-    /// Returns the number of active elements
+    /// Returns the number of inserted elements
     pub fn len(&self) -> usize {
         self.nodes_.len() - self.id_pool_.len()
     }
@@ -101,6 +111,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     }
 
     #[inline(always)]
+    /// Returns true if the list is empty
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -108,13 +119,14 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     /// Clears the list.
     /// Warning: any Pointer object referring to this list will be corrupted.
     pub fn clear(&mut self) {
-        self.head_ = usize::MAX;
-        self.tail_ = usize::MAX;
+        self.head_ = OUT_OF_BOUNDS;
+        self.tail_ = OUT_OF_BOUNDS;
         self.nodes_.clear();
         self.id_pool_.clear();
     }
 
-    /// Returns the next free index
+    /// Returns the next free index.
+    /// This value will be invalid if any insert or remove operation is performed on the list.
     pub fn next_free_index(&self) -> usize {
         if self.id_pool_.is_empty() {
             self.nodes_.len()
@@ -133,7 +145,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             .ok_or_else(|| MapError::InternalError("error, item not found".to_string()))?
             .as_ref()
             .ok_or_else(|| MapError::InternalError("error, item was not active".to_string()))?;
-        Ok(&rv.key)
+        Ok(&rv.key_)
     }
 
     #[inline(always)]
@@ -145,11 +157,11 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             .ok_or_else(|| MapError::InternalError("error, item not found".to_string()))?
             .as_ref()
             .ok_or_else(|| MapError::InternalError("error, item was not active".to_string()))?;
-        Ok(&rv.value)
+        Ok(&rv.value_)
     }
 
     #[inline(always)]
-    /// Returns the item value at index
+    /// Returns the item key and value at index
     pub fn get_kv(&self, index: usize) -> Result<(&T, &U), MapError> {
         let rv = self
             .nodes_
@@ -157,12 +169,12 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             .ok_or_else(|| MapError::InternalError("error, item not found".to_string()))?
             .as_ref()
             .ok_or_else(|| MapError::InternalError("error, item was not active".to_string()))?;
-        Ok((&rv.key, &rv.value))
+        Ok((&rv.key_, &rv.value_))
     }
 
     #[inline(always)]
-    /// Returns the previous item of item at index
-    pub fn get_prev(&self, index: usize) -> Result<&T, MapError> {
+    /// Returns the previous key item of item at index
+    pub fn get_prev_k(&self, index: usize) -> Result<&T, MapError> {
         let prev = self
             .nodes_
             .get(index)
@@ -170,7 +182,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             .ok_or_else(|| MapError::InternalError("error, item not found".to_string()))?
             .as_ref()
             .ok_or_else(|| MapError::InternalError("error, item was None".to_string()))?
-            .prev;
+            .prev_;
 
         let node = self
             .nodes_
@@ -179,11 +191,12 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             .as_ref();
         Ok(&node
             .ok_or_else(|| MapError::InternalError("error, item was not active".to_string()))?
-            .key)
+            .key_)
     }
 
     /// Add an item at the front of the list
-    pub fn push_front(&mut self, key: T, value: U) -> Result<usize, MapError> {
+    /// Note that this ignores the order of items, use with care.
+    fn push_front_(&mut self, key: T, value: U) -> Result<usize, MapError> {
         let insertion_index = if !self.id_pool_.is_empty() {
             self.id_pool_.pop().unwrap()
         } else {
@@ -194,13 +207,13 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 //println!("prev_head:{:?}", prev_head);
                 // there were a previous head
                 let new_node = Node {
-                    next: self.head_,
-                    prev: usize::MAX,
-                    key,
-                    value,
+                    next_: self.head_,
+                    prev_: OUT_OF_BOUNDS,
+                    key_: key,
+                    value_: value,
                 };
                 self.head_ = insertion_index;
-                prev_head.prev = insertion_index;
+                prev_head.prev_ = insertion_index;
                 new_node
             } else {
                 return Err(MapError::InternalError(format!(
@@ -215,10 +228,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             self.head_ = insertion_index;
             self.tail_ = insertion_index;
             Node {
-                next: usize::MAX,
-                prev: usize::MAX,
-                key,
-                value,
+                next_: OUT_OF_BOUNDS,
+                prev_: OUT_OF_BOUNDS,
+                key_: key,
+                value_: value,
             }
         };
         //println!("push_front Pushed {:?} at index:{}", new_node, curr_len);
@@ -227,6 +240,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 
     #[inline(always)]
     /// insert at position or append at back of the list
+    /// Note that this ignores the order of items, use with care.
     fn replace_or_push_(&mut self, insertion_index: usize, new_node: Node<T, U>) -> usize {
         if insertion_index == self.nodes_.len() {
             self.nodes_.push(Some(new_node));
@@ -242,9 +256,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     }
 
     /// insert a new value before the element at index
-    pub fn insert_before(&mut self, index: usize, key: T, value: U) -> Result<usize, MapError> {
-        if index == usize::MAX {
-            return self.push_front(key, value);
+    /// Note that this ignores the order of items, use with care.
+    fn insert_before_(&mut self, index: usize, key: T, value: U) -> Result<usize, MapError> {
+        if index == OUT_OF_BOUNDS {
+            return self.push_front_(key, value);
         }
 
         let insertion_index = if !self.id_pool_.is_empty() {
@@ -258,12 +273,12 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 //println!("next_node:{:?}", next_node);
                 // there were a previous head
                 let new_node = Node {
-                    next: index,
-                    prev: next_node.prev,
-                    key,
-                    value,
+                    next_: index,
+                    prev_: next_node.prev_,
+                    key_: key,
+                    value_: value,
                 };
-                next_node.prev = insertion_index;
+                next_node.prev_ = insertion_index;
                 new_node
             } else {
                 return Err(MapError::InternalError(format!(
@@ -278,13 +293,13 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             self.head_ = insertion_index;
             self.tail_ = insertion_index;
             Node {
-                next: usize::MAX,
-                prev: usize::MAX,
-                key,
-                value,
+                next_: OUT_OF_BOUNDS,
+                prev_: OUT_OF_BOUNDS,
+                key_: key,
+                value_: value,
             }
         };
-        let prev_node = new_node.prev;
+        let prev_node = new_node.prev_;
 
         //println!("insert_before Pushed {:?} at index:{}", new_node, curr_len);
         {
@@ -293,10 +308,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             assert_eq!(insertion_index, _i);
         };
 
-        if prev_node != usize::MAX {
+        if prev_node != OUT_OF_BOUNDS {
             if let Some(prev_node) = self.nodes_.get_mut(prev_node) {
                 if let Some(prev_node) = prev_node {
-                    prev_node.next = insertion_index;
+                    prev_node.next_ = insertion_index;
                 } else {
                     return Err(MapError::InternalError(format!(
                         "Should not happen error™ at {}:{}",
@@ -321,7 +336,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     }
 
     /// Add an item at the back of the list
-    pub fn push_back(&mut self, key: T, value: U) -> Result<usize, MapError> {
+    fn push_back_(&mut self, key: T, value: U) -> Result<usize, MapError> {
         let insertion_index = if !self.id_pool_.is_empty() {
             self.id_pool_.pop().unwrap()
         } else {
@@ -332,13 +347,13 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 //println!("prev_tail:{:?}", prev_tail);
                 // there were a previous tail
                 let new_node = Node {
-                    next: usize::MAX,
-                    prev: self.tail_,
-                    key,
-                    value,
+                    next_: OUT_OF_BOUNDS,
+                    prev_: self.tail_,
+                    key_: key,
+                    value_: value,
                 };
                 self.tail_ = insertion_index;
-                prev_tail.next = insertion_index;
+                prev_tail.next_ = insertion_index;
                 new_node
             } else {
                 return Err(MapError::InternalError(format!(
@@ -353,10 +368,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             self.head_ = insertion_index;
             self.tail_ = insertion_index;
             Node {
-                next: usize::MAX,
-                prev: usize::MAX,
-                key,
-                value,
+                next_: OUT_OF_BOUNDS,
+                prev_: OUT_OF_BOUNDS,
+                key_: key,
+                value_: value,
             }
         };
         //println!("push_back Pushed {:?} at index:{}", new_node, insertion_index);
@@ -382,9 +397,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         self.ordered_insert_pos(key, value, self.head_, before_equals)
     }
 
-    /// Insert item at position defined by Order (lesser first) with a position hint.
+    /// Insert item by Order (lesser first) with a position hint.
     /// 'before_equals' defines how new equal objects should be positioned:
-    /// true->closer to head, false->closer to tail
+    /// true-> before equals, false-> at tail end
+    /// todo: remove before_equals, always stick to tail end
     pub fn ordered_insert_pos(
         &mut self,
         key: T,
@@ -392,9 +408,9 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         position: usize,
         before_equals: bool,
     ) -> Result<usize, MapError> {
-        if self.head_ == usize::MAX {
+        if self.head_ == OUT_OF_BOUNDS {
             // list is empty, ignore position and insert
-            return self.push_back(key, value);
+            return self.push_back_(key, value);
         }
         //println!("insert at position {}, key={:?} head={}", position, key, self.head_);
         let mut insert_before: Option<usize> = None;
@@ -413,7 +429,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             ),
         };
 
-        let cmp = key.cmp(&first_node.key);
+        let cmp = key.cmp(&first_node.key_);
         //println!("curr_index:{}, first_node.key={:?}, cmp={:?}", curr_index, first_node.key, cmp);
 
         #[allow(clippy::collapsible_else_if)] // false positive?
@@ -423,11 +439,11 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 // we are searching down the list, stop at first Equal
                 while let Some(Some(sample)) = self.nodes_.get(curr_index) {
                     // stop at first Ordering::Equal or Ordering::Less
-                    if key.cmp(&sample.key) != Ordering::Greater {
+                    if key.cmp(&sample.key_) != Ordering::Greater {
                         insert_before = Some(curr_index);
                         break;
                     } else {
-                        curr_index = sample.next;
+                        curr_index = sample.next_;
                     }
                 }
             } else {
@@ -435,11 +451,11 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 // we are searching down the list, stop at first Less
                 while let Some(Some(sample)) = self.nodes_.get(curr_index) {
                     // move past Ordering::Equal
-                    if key.cmp(&sample.key) == Ordering::Less {
+                    if key.cmp(&sample.key_) == Ordering::Less {
                         insert_before = Some(curr_index);
                         break;
                     } else {
-                        curr_index = sample.next;
+                        curr_index = sample.next_;
                     }
                 }
             }
@@ -451,11 +467,11 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 //println!("search up, curr_index={}, cmp={:?}, insert before equals insert_before:{:?}", curr_index, cmp, insert_before);
                 // we are searching up the list, stop at first Greater
                 while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    if key.cmp(&sample.key) == Ordering::Greater {
+                    if key.cmp(&sample.key_) == Ordering::Greater {
                         break;
                     } else {
                         insert_before = Some(curr_index);
-                        curr_index = sample.prev;
+                        curr_index = sample.prev_;
                     }
                 }
             } else {
@@ -465,12 +481,12 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 //println!("search up, insert after equals. tmp insert_before:{:?}", insert_before);
                 // we are searching up the list, stop at first Equal or Greater
                 while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    if key.cmp(&sample.key) != Ordering::Less {
+                    if key.cmp(&sample.key_) != Ordering::Less {
                         //println!("break: insert_before:{:?}", insert_before);
                         break;
                     } else {
                         insert_before = Some(curr_index);
-                        curr_index = sample.prev;
+                        curr_index = sample.prev_;
                         //println!("continue: curr_index:{}", curr_index);
                     }
                 }
@@ -479,33 +495,31 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 
         if let Some(insert_before) = insert_before {
             //println!("inserting before {}", insert_before);
-            self.insert_before(insert_before, key, value)
+            self.insert_before_(insert_before, key, value)
         } else {
             //println!("pushing at the back");
-            self.push_back(key, value)
+            self.push_back_(key, value)
         }
     }
 
     /// Returns the first element in the container whose key is not considered to go
     /// before position (i.e., either it is equivalent or goes after).
+    /// If 'search_from_head' is true the search will be performed from the head otherwise from the tail.
     /// Returns None if no data is found
-    pub fn lower_bound(&self, key: T, from_head: bool) -> Result<Option<usize>, MapError> {
+    pub fn lower_bound(&self, key: T, search_from_head: bool) -> Result<Option<usize>, MapError> {
         //println!("looking for {:?}\nin {:?}", key, self);
         /*let equals:Vec<T> = self.iter().filter_map(|n| {if n.cmp(&key)==Ordering::Equal{Some(n.clone())} else {None}}).collect();
         if equals.len() >= 2 {
           println!("There were multiple alternative for lower_bound");
           println!("{:?}", equals);
         }*/
-        /*
+
         {
             let mut iter = self.iter();
             let mut flips = 0_usize;
-            let mut last_cmp = if let Some(first) = iter.next() {
-                Some(key.cmp(&first))
-            } else {
-                None
-            };
-            for node in iter {
+            let mut last_cmp = iter.next().map(|(first,_)| key.cmp(first));
+
+            for (node,_) in iter {
                 let cmp = Some(key.cmp(node));
                 if cmp != last_cmp {
                     last_cmp = cmp;
@@ -514,41 +528,41 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             }
             if flips > 1 {
                 println!("\nkey={:?}", key);
-                for n in self.iter() {
+                for (n,_) in self.iter() {
                     println!("key.cmp({:?})=={:?}-{:?}", n, n.cmp(&key), key.cmp(n));
                 }
             } else {
-                println!("{} flips found", flips);
+                //println!("{} flips found", flips);
             }
-        }*/
+        }
 
-        if from_head {
+        if search_from_head {
             // sequential search from the front
-            if self.head_ == usize::MAX {
+            if self.head_ == OUT_OF_BOUNDS {
                 return Ok(None);
             }
             let mut curr_index = self.head_;
             while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                if key.cmp(&sample.key) != Ordering::Greater {
+                if key.cmp(&sample.key_) != Ordering::Greater {
                     //println!("found :{:?}, order:{:?}", sample.key,  key.cmp(&sample.key));
                     return Ok(Some(curr_index));
                 } else {
-                    curr_index = sample.next;
+                    curr_index = sample.next_;
                 }
             }
         } else {
             // sequential search from the rear
-            if self.tail_ == usize::MAX {
+            if self.tail_ == OUT_OF_BOUNDS {
                 return Ok(None);
             }
             let mut last_match: Option<usize> = None;
 
             let mut curr_index = self.tail_;
             while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                if key.cmp(&sample.key) != Ordering::Greater {
+                if key.cmp(&sample.key_) != Ordering::Greater {
                     //println!("ignoring :{:?} ", sample.key);
                     last_match = Some(curr_index);
-                    curr_index = sample.prev;
+                    curr_index = sample.prev_;
                 } else {
                     return if let Some(last_match) = last_match {
                         //println!("found :{:?} ", sample.key);
@@ -573,29 +587,29 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     #[inline(always)]
     /// Pop the head item
     pub fn pop_front(&mut self) -> Result<Option<T>, MapError> {
-        self.remove(self.head_)
+        self.remove_(self.head_)
     }
 
     #[inline(always)]
     /// Pop the tail item
     pub fn pop_back(&mut self) -> Result<Option<T>, MapError> {
-        self.remove(self.tail_)
+        self.remove_(self.tail_)
     }
 
     #[inline(always)]
     /// Pop the head item
-    pub fn peek_front(&self) -> Option<&T> {
+    pub fn peek_front_k(&self) -> Option<&T> {
         match self.nodes_.get(self.head_) {
-            Some(Some(node)) => Some(&node.key),
+            Some(Some(node)) => Some(&node.key_),
             _ => None,
         }
     }
 
     #[inline(always)]
     /// Pop the tail item
-    pub fn peek_back(&self) -> Option<&T> {
+    pub fn peek_back_k(&self) -> Option<&T> {
         match self.nodes_.get(self.tail_) {
-            Some(Some(node)) => Some(&node.key),
+            Some(Some(node)) => Some(&node.key_),
             _ => None,
         }
     }
@@ -614,18 +628,18 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 
     #[inline(always)]
     /// Remove the item at index, return item value if found
-    fn remove(&mut self, index: usize) -> Result<Option<T>, MapError> {
-        let rv = self.remove_(index, false)?;
+    fn remove_(&mut self, index: usize) -> Result<Option<T>, MapError> {
+        let rv = self.remove__(index, false)?;
         Ok(Some(rv.1))
     }
 
     /// Disconnect and remove the item at index, return item value if found
-    fn remove_(
+    fn remove__(
         &mut self,
         index: usize,
         only_disconnect: bool,
     ) -> Result<(usize, T, usize), MapError> {
-        if self.head_ == usize::MAX {
+        if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
                 "Could not find element to remove {}:{}",
                 file!(),
@@ -633,20 +647,20 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             )));
         }
         //println!("remove {} before:{:?}", index, self);
-        let rv = if self.head_ != usize::MAX {
+        let rv = if self.head_ != OUT_OF_BOUNDS {
             // list was not empty
             let operation = if let Some(node) = self.nodes_.get(index) {
                 let mut operation = EraseOperation {
-                    change_prev: None,
-                    erase: index,
-                    change_next: None,
+                    change_prev_: None,
+                    erase_: index,
+                    change_next_: None,
                 };
                 if let Some(node) = node {
                     // Check node next
-                    if let Some(next) = self.nodes_.get(node.next) {
+                    if let Some(next) = self.nodes_.get(node.next_) {
                         if next.is_some() {
                             // node had a next
-                            operation.change_next = Some((node.next, node.prev));
+                            operation.change_next_ = Some((node.next_, node.prev_));
                         } else {
                             return Err(MapError::InternalError(format!(
                                 "Should not happen error™ at {}:{}",
@@ -659,10 +673,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                     }
 
                     // Check prev node
-                    if let Some(prev) = self.nodes_.get(node.prev) {
+                    if let Some(prev) = self.nodes_.get(node.prev_) {
                         if prev.is_some() {
                             // node had a prev
-                            operation.change_prev = Some((node.prev, node.next));
+                            operation.change_prev_ = Some((node.prev_, node.next_));
                         } else {
                             return Err(MapError::InternalError(format!(
                                 "Should not happen error™ at {}:{}",
@@ -710,7 +724,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         only_disconnect: bool,
     ) -> Result<(usize, T, usize), MapError> {
         //println!("erase_operation {:?}", operation);
-        match (operation.change_prev, operation.change_next) {
+        match (operation.change_prev_, operation.change_next_) {
             (Some((prev_i, new_next)), Some((next_i, new_prev))) => {
                 #[cfg(feature = "console_debug")]
                     {
@@ -719,7 +733,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                     }
                 match self.nodes_.get_mut(prev_i) {
                     Some(Some(node)) => {
-                        node.next = new_next;
+                        node.next_ = new_next;
                     }
                     _ => {
                         return Err(MapError::InternalError(format!(
@@ -731,7 +745,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 };
                 match self.nodes_.get_mut(next_i) {
                     Some(Some(node)) => {
-                        node.prev = new_prev;
+                        node.prev_ = new_prev;
                     }
                     _ => {
                         return Err(MapError::InternalError(format!(
@@ -744,7 +758,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             }
             (None, Some((new_head, new_head_prev))) => match self.nodes_.get_mut(new_head) {
                 Some(Some(node)) => {
-                    node.prev = new_head_prev;
+                    node.prev_ = new_head_prev;
                     self.head_ = new_head;
                 }
                 _ => {
@@ -757,7 +771,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             },
             (Some((new_tail, new_tail_next)), None) => match self.nodes_.get_mut(new_tail) {
                 Some(Some(node)) => {
-                    node.next = new_tail_next;
+                    node.next_ = new_tail_next;
                     self.tail_ = new_tail;
                 }
                 _ => {
@@ -769,22 +783,22 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                 }
             },
             (None, None) => {
-                self.head_ = usize::MAX;
-                self.tail_ = usize::MAX
+                self.head_ = OUT_OF_BOUNDS;
+                self.tail_ = OUT_OF_BOUNDS
             }
         }
-        match self.nodes_.get_mut(operation.erase) {
+        match self.nodes_.get_mut(operation.erase_) {
             Some(old_head) => {
                 if only_disconnect {
                     // only disconnect the node, i.e. leave it in place - disconnected.
                     if let Some(old_head) = old_head {
-                        return Ok((old_head.prev, old_head.key.clone(), old_head.next));
+                        return Ok((old_head.prev_, old_head.key_.clone(), old_head.next_));
                     }
                 } else {
                     // Replace the node with None
                     if let Some(old_head) = old_head.take() {
-                        self.id_pool_.push(operation.erase);
-                        return Ok((old_head.prev, old_head.key, old_head.next));
+                        self.id_pool_.push(operation.erase_);
+                        return Ok((old_head.prev_, old_head.key_, old_head.next_));
                     }
                 }
                 return Err(MapError::InternalError(format!(
@@ -796,7 +810,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             _ => {
                 return Err(MapError::InternalError(format!(
                     "Should not happen error™, element to erase not found {} at {}:{}",
-                    operation.erase,
+                    operation.erase_,
                     file!(),
                     line!()
                 )))
@@ -806,13 +820,14 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 }
 
 #[derive(Clone, Debug)]
+/// A double ended iterator
 pub struct ListIterator<'a, T: 'a, U: 'a>
     where
         T: Clone + Debug,
         U: Clone + Debug,
 {
-    list: &'a LinkedList<T, U>,
-    my_next: usize,
+    list_: &'a LinkedList<T, U>,
+    my_next_: usize,
 }
 
 impl<'a, T: 'a, U: 'a> std::iter::Iterator for ListIterator<'a, T, U>
@@ -820,24 +835,24 @@ impl<'a, T: 'a, U: 'a> std::iter::Iterator for ListIterator<'a, T, U>
         T: Clone + Debug,
         U: Clone + Debug,
 {
-    type Item = &'a T;
+    type Item = (&'a T, &'a U);
 
     #[inline]
     /// Step the iterator forward one step
-    fn next(&mut self) -> Option<&'a T> {
-        if self.my_next == usize::MAX {
+    fn next(&mut self) -> Option<(&'a T, &'a U)> {
+        if self.my_next_ == OUT_OF_BOUNDS {
             return None;
         }
         //println!("Returning value at index:{}", self.my_next);
-        if let Some(node) = self.list.nodes_.get(self.my_next)? {
-            if self.my_next == self.list.tail_ {
-                self.my_next = usize::MAX;
+        if let Some(node) = self.list_.nodes_.get(self.my_next_)? {
+            if self.my_next_ == self.list_.tail_ {
+                self.my_next_ = OUT_OF_BOUNDS;
             } else {
-                self.my_next = node.next
+                self.my_next_ = node.next_
             }
-            Some(&node.key)
+            Some((&node.key_, &node.value_))
         } else {
-            self.my_next = usize::MAX;
+            self.my_next_ = OUT_OF_BOUNDS;
             None
         }
     }
@@ -850,24 +865,24 @@ impl<'a, T: 'a, U: 'a> DoubleEndedIterator for ListIterator<'a, T, U>
 {
     #[inline]
     /// Step the iterator backward one step
-    fn next_back(&mut self) -> Option<&'a T> {
-        if let Some(node) = self.list.nodes_.get(self.my_next)? {
-            if self.my_next == self.list.tail_ {
-                self.my_next = usize::MAX;
+    fn next_back(&mut self) -> Option<(&'a T, &'a U)> {
+        if let Some(node) = self.list_.nodes_.get(self.my_next_)? {
+            if self.my_next_ == self.list_.tail_ {
+                self.my_next_ = OUT_OF_BOUNDS;
             } else {
-                self.my_next = node.prev
+                self.my_next_ = node.prev_
             }
-            Some(&node.key)
+            Some((&node.key_, &node.value_))
         } else {
-            self.my_next = usize::MAX;
+            self.my_next_ = OUT_OF_BOUNDS;
             None
         }
     }
 }
 
-/// An effort to emulate a C++ map iterator in Rust
+/// An effort to emulate a C++ std::map iterator in Rust.
 /// It will have functionality like:
-/// prev(), next(), get(), erase(), lower_bound(), replace(), insert_before(), insert_after()
+/// prev(), next(), get(), erase(), lower_bound(), replace_key()
 pub struct PIterator<T, U>
     where
         T: Clone + Debug,
@@ -900,7 +915,7 @@ impl<T, U> PIterator<T, U>
     #[inline(always)]
     /// Returns a clone of the data at current position
     pub fn get_k(&self) -> Result<T, MapError> {
-        if self.current == usize::MAX {
+        if self.current == OUT_OF_BOUNDS {
             //panic!();
             return Err(MapError::InternalError(format!(
                 "Invalid pointer (moved past start/end). {}:{}",
@@ -931,7 +946,7 @@ impl<T, U> PIterator<T, U>
                 ))
             })?
             .clone();
-        Ok(node.key)
+        Ok(node.key_)
     }
 
     #[inline(always)]
@@ -960,31 +975,31 @@ impl<T, U> PIterator<T, U>
                 ))
             })?
             .clone();
-        Ok(node.value)
+        Ok(node.value_)
     }
 
+    #[allow(clippy::should_implement_trait)]
     #[inline(always)]
-    /// Move to the next element
+    /// Move to the next element.
+    /// Note that this is NOT a Rust iterator next() method.
     pub fn next(&mut self) -> Result<(), MapError> {
         let list_borrow = self.list.borrow();
         match list_borrow.nodes_.get(self.current) {
-            Some(Some(node)) => self.current = node.next,
+            Some(Some(node)) => self.current = node.next_,
             // Some(None) nodes should be inaccessible
             Some(None) => {
                 eprintln!("next() failed at index:{}", self.current);
                 for (i, n) in list_borrow.nodes_.iter().enumerate() {
                     eprintln!(" #{}, {:?}", i, n);
                 }
-                panic!();
-                /*
                 return Err(MapError::InternalError(format!(
                     "next() failed at index:{}. {}:{}",
                     self.current,
                     file!(),
                     line!()
-                )))*/
+                )))
             }
-            None => self.current = usize::MAX,
+            None => self.current = OUT_OF_BOUNDS,
         }
         Ok(())
     }
@@ -994,7 +1009,7 @@ impl<T, U> PIterator<T, U>
     pub fn prev(&mut self) -> Result<(), MapError> {
         let list_borrow = self.list.borrow();
         match list_borrow.nodes_.get(self.current) {
-            Some(Some(node)) => self.current = node.prev,
+            Some(Some(node)) => self.current = node.prev_,
             // Some(None) nodes should be inaccessible
             Some(None) => {
                 eprintln!("prev() failed at index:{}", self.current);
@@ -1008,7 +1023,7 @@ impl<T, U> PIterator<T, U>
                     line!()
                 )));
             }
-            None => self.current = usize::MAX,
+            None => self.current = OUT_OF_BOUNDS,
         }
         Ok(())
     }
@@ -1026,9 +1041,9 @@ impl<T, U> PIterator<T, U>
     }
 
     #[inline(always)]
-    /// Return true if pointer has moved past beginning or end of the list
+    /// Return true if pointer has *NOT* moved past beginning or end of the list
     pub fn is_ok(&self) -> bool {
-        self.current != usize::MAX
+        self.current != OUT_OF_BOUNDS
             && matches!(self.list.borrow().nodes_.get(self.current), Some(Some(_)))
     }
 
@@ -1043,33 +1058,15 @@ impl<T, U> PIterator<T, U>
     pub fn is_at_tail(&self) -> bool {
         self.current == self.list.borrow().tail_
     }
-    /*
-        #[inline(always)]
-        /// same as iterator == Container.begin() in c++
-        pub fn is_at_beginning(&self) -> bool {
-            self.current == self.list.borrow().head_
-        }
-    */
+
     #[inline(always)]
     /// Replace current key. This will destroy the internal order of element if you
     /// replace an element with something out of order.
     pub fn replace_key(&mut self, key: T) {
-        {
-            let mut list = std::pin::Pin::new(self.list.borrow_mut());
-            if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
-                node.key = key;
-            }
+        let mut list = std::pin::Pin::new(self.list.borrow_mut());
+        if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
+            node.key_ = key;
         }
-    }
-
-    #[inline(always)]
-    /// Inserts a new element before this with *value*
-    /// This will destroy the internal ordering of elements if you
-    /// insert an 'out of order' element.
-    pub fn insert_before(&mut self, key: T, value: U) -> Result<usize, MapError> {
-        self.list
-            .borrow_mut()
-            .insert_before(self.current, key, value)
     }
 
     #[inline(always)]
@@ -1086,8 +1083,8 @@ impl<T, U> PIterator<T, U>
         let rv = self
             .list
             .borrow_mut()
-            .remove_(self.current, only_disconnect)?;
-        if rv.0 != usize::MAX {
+            .remove__(self.current, only_disconnect)?;
+        if rv.0 != OUT_OF_BOUNDS {
             self.current = rv.0;
         } else {
             self.current = rv.2;
@@ -1111,7 +1108,7 @@ impl<T, U> PIterator<T, U>
             // Return a Pointer that is out of bounds
             Ok(Self {
                 list,
-                current: usize::MAX,
+                current: OUT_OF_BOUNDS,
             })
         }
     }
@@ -1123,7 +1120,7 @@ impl<T, U> Debug for PIterator<T, U>
         U: Clone + Debug + Unpin,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Pointer({})", self.current)
+        writeln!(f, "PIterator({})", self.current)
     }
 }
 

@@ -514,6 +514,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
           println!("{:?}", equals);
         }*/
 
+        #[cfg(feature = "console_debug")]
         {
             let mut iter = self.iter();
             let mut flips = 0_usize;

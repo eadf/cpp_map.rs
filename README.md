@@ -1,3 +1,4 @@
+[![Latest version](https://img.shields.io/crates/v/cpp_map.svg)](https://crates.io/crates/cpp_map)
 [![Documentation](https://docs.rs/cpp_map/badge.svg)](https://docs.rs/cpp_map)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)

@@ -22,7 +22,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 
 /// Indicates that an iterator has passed beyond the limits of the list.
-pub const OUT_OF_BOUNDS:usize = usize::MAX;
+pub const OUT_OF_BOUNDS: usize = usize::MAX;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MapError {
@@ -35,9 +35,9 @@ mod test;
 
 #[derive(Clone, Debug)]
 struct Node<T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     prev_: usize,
     next_: usize,
@@ -50,9 +50,9 @@ struct Node<T, U>
 /// The tail (bottom/back) is the last item of the list. Sorted Order::Greater than other items.
 #[derive(Clone, Debug)]
 pub struct LinkedList<T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     head_: usize,
     tail_: usize,
@@ -61,9 +61,9 @@ pub struct LinkedList<T, U>
 }
 
 impl<T, U> Default for LinkedList<T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     fn default() -> Self {
         Self {
@@ -88,9 +88,9 @@ struct EraseOperation {
 
 #[allow(dead_code)]
 impl<'a, T: 'a, U: 'a> LinkedList<T, U>
-    where
-        T: Clone + Debug + Ord + PartialOrd,
-        U: Clone + Debug,
+where
+    T: Clone + Debug + Ord + PartialOrd,
+    U: Clone + Debug,
 {
     pub fn iter(&self) -> ListIterator<'_, T, U> {
         ListIterator {
@@ -385,28 +385,17 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 
     #[inline(always)]
     /// Insert item at position defined by Order (lesser first)
-    /// 'before_equals' defines how new equal objects should be positioned:
-    /// true->closer to head, false->closer to tail
     /// This is the same as 'ordered_insert_pos()' with self.head_ as position hint
-    pub fn ordered_insert(
-        &mut self,
-        key: T,
-        value: U,
-        before_equals: bool,
-    ) -> Result<usize, MapError> {
-        self.ordered_insert_pos(key, value, self.head_, before_equals)
+    pub fn ordered_insert(&mut self, key: T, value: U) -> Result<usize, MapError> {
+        self.ordered_insert_pos(key, value, self.head_)
     }
 
     /// Insert item by Order (lesser first) with a position hint.
-    /// 'before_equals' defines how new equal objects should be positioned:
-    /// true-> before equals, false-> at tail end
-    /// todo: remove before_equals, always stick to tail end
     pub fn ordered_insert_pos(
         &mut self,
         key: T,
         value: U,
         position: usize,
-        before_equals: bool,
     ) -> Result<usize, MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             // list is empty, ignore position and insert
@@ -424,7 +413,11 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                     .unwrap()
                     .as_ref()
                     .ok_or_else(|| {
-                        MapError::InternalError(format!("head_ item was None {}:{}", file!(), line!()))
+                        MapError::InternalError(format!(
+                            "head_ item was None {}:{}",
+                            file!(),
+                            line!()
+                        ))
                     })?,
             ),
         };
@@ -433,62 +426,32 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         //println!("curr_index:{}, first_node.key={:?}, cmp={:?}", curr_index, first_node.key, cmp);
 
         #[allow(clippy::collapsible_else_if)] // false positive?
-        if (cmp == Ordering::Greater) || ((cmp == Ordering::Equal) && !before_equals) {
-            if before_equals {
-                //println!("search down, insert before equals");
-                // we are searching down the list, stop at first Equal
-                while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    // stop at first Ordering::Equal or Ordering::Less
-                    if key.cmp(&sample.key_) != Ordering::Greater {
-                        insert_before = Some(curr_index);
-                        break;
-                    } else {
-                        curr_index = sample.next_;
-                    }
-                }
-            } else {
-                //println!("search down, insert after equals");
-                // we are searching down the list, stop at first Less
-                while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    // move past Ordering::Equal
-                    if key.cmp(&sample.key_) == Ordering::Less {
-                        insert_before = Some(curr_index);
-                        break;
-                    } else {
-                        curr_index = sample.next_;
-                    }
+        if (cmp == Ordering::Greater) || (cmp == Ordering::Equal) {
+            //println!("search down, insert after equals");
+            // we are searching down the list, stop at first Less
+            while let Some(Some(sample)) = self.nodes_.get(curr_index) {
+                // move past Ordering::Equal
+                if key.cmp(&sample.key_) == Ordering::Less {
+                    insert_before = Some(curr_index);
+                    break;
+                } else {
+                    curr_index = sample.next_;
                 }
             }
         } else {
-            if before_equals {
-                if cmp == Ordering::Equal {
+            if cmp == Ordering::Less {
+                insert_before = Some(curr_index);
+            }
+            //println!("search up, insert after equals. tmp insert_before:{:?}", insert_before);
+            // we are searching up the list, stop at first Equal or Greater
+            while let Some(Some(sample)) = self.nodes_.get(curr_index) {
+                if key.cmp(&sample.key_) != Ordering::Less {
+                    //println!("break: insert_before:{:?}", insert_before);
+                    break;
+                } else {
                     insert_before = Some(curr_index);
-                }
-                //println!("search up, curr_index={}, cmp={:?}, insert before equals insert_before:{:?}", curr_index, cmp, insert_before);
-                // we are searching up the list, stop at first Greater
-                while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    if key.cmp(&sample.key_) == Ordering::Greater {
-                        break;
-                    } else {
-                        insert_before = Some(curr_index);
-                        curr_index = sample.prev_;
-                    }
-                }
-            } else {
-                if cmp == Ordering::Less {
-                    insert_before = Some(curr_index);
-                }
-                //println!("search up, insert after equals. tmp insert_before:{:?}", insert_before);
-                // we are searching up the list, stop at first Equal or Greater
-                while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                    if key.cmp(&sample.key_) != Ordering::Less {
-                        //println!("break: insert_before:{:?}", insert_before);
-                        break;
-                    } else {
-                        insert_before = Some(curr_index);
-                        curr_index = sample.prev_;
-                        //println!("continue: curr_index:{}", curr_index);
-                    }
+                    curr_index = sample.prev_;
+                    //println!("continue: curr_index:{}", curr_index);
                 }
             }
         }
@@ -506,21 +469,14 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
     /// before position (i.e., either it is equivalent or goes after).
     /// If 'search_from_head' is true the search will be performed from the head otherwise from the tail.
     /// Returns None if no data is found
-    pub fn lower_bound(&self, key: T, search_from_head: bool) -> Result<Option<usize>, MapError> {
-        //println!("looking for {:?}\nin {:?}", key, self);
-        /*let equals:Vec<T> = self.iter().filter_map(|n| {if n.cmp(&key)==Ordering::Equal{Some(n.clone())} else {None}}).collect();
-        if equals.len() >= 2 {
-          println!("There were multiple alternative for lower_bound");
-          println!("{:?}", equals);
-        }*/
-
+    pub fn lower_bound(&self, key: T) -> Result<Option<usize>, MapError> {
         #[cfg(feature = "console_debug")]
         {
             let mut iter = self.iter();
             let mut flips = 0_usize;
-            let mut last_cmp = iter.next().map(|(first,_)| key.cmp(first));
+            let mut last_cmp = iter.next().map(|(first, _)| key.cmp(first));
 
-            for (node,_) in iter {
+            for (node, _) in iter {
                 let cmp = Some(key.cmp(node));
                 if cmp != last_cmp {
                     last_cmp = cmp;
@@ -529,7 +485,7 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             }
             if flips > 1 {
                 println!("\nkey={:?}", key);
-                for (n,_) in self.iter() {
+                for (n, _) in self.iter() {
                     println!("key.cmp({:?})=={:?}-{:?}", n, n.cmp(&key), key.cmp(n));
                 }
             } else {
@@ -537,52 +493,35 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
             }
         }
 
-        if search_from_head {
-            // sequential search from the front
-            if self.head_ == OUT_OF_BOUNDS {
-                return Ok(None);
-            }
-            let mut curr_index = self.head_;
-            while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                if key.cmp(&sample.key_) != Ordering::Greater {
-                    //println!("found :{:?}, order:{:?}", sample.key,  key.cmp(&sample.key));
-                    return Ok(Some(curr_index));
-                } else {
-                    curr_index = sample.next_;
-                }
-            }
-        } else {
-            // sequential search from the rear
-            if self.tail_ == OUT_OF_BOUNDS {
-                return Ok(None);
-            }
-            let mut last_match: Option<usize> = None;
-
-            let mut curr_index = self.tail_;
-            while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                if key.cmp(&sample.key_) != Ordering::Greater {
-                    //println!("ignoring :{:?} ", sample.key);
-                    last_match = Some(curr_index);
-                    curr_index = sample.prev_;
-                } else {
-                    return if let Some(last_match) = last_match {
-                        //println!("found :{:?} ", sample.key);
-                        Ok(Some(last_match))
-                    } else {
-                        //println!("found nothing :{:?}", last_match);
-                        Ok(None)
-                    };
-                }
-            }
-            return if let Some(last_match) = last_match {
-                //println!("found index:{:?} ", last_match);
-                Ok(Some(last_match))
-            } else {
-                //println!("found nothing :{:?}", last_match);
-                Ok(None)
-            };
+        // sequential search from the rear
+        if self.tail_ == OUT_OF_BOUNDS {
+            return Ok(None);
         }
-        Ok(None)
+        let mut last_match: Option<usize> = None;
+
+        let mut curr_index = self.tail_;
+        while let Some(Some(sample)) = self.nodes_.get(curr_index) {
+            if key.cmp(&sample.key_) != Ordering::Greater {
+                //println!("ignoring :{:?} ", sample.key);
+                last_match = Some(curr_index);
+                curr_index = sample.prev_;
+            } else {
+                return if let Some(last_match) = last_match {
+                    //println!("found :{:?} ", sample.key);
+                    Ok(Some(last_match))
+                } else {
+                    //println!("found nothing :{:?}", last_match);
+                    Ok(None)
+                };
+            }
+        }
+        if let Some(last_match) = last_match {
+            //println!("found index:{:?} ", last_match);
+            Ok(Some(last_match))
+        } else {
+            //println!("found nothing :{:?}", last_match);
+            Ok(None)
+        }
     }
 
     #[inline(always)]
@@ -669,8 +608,6 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                                 line!()
                             )));
                         }
-                    } else {
-                        // node had no next
                     }
 
                     // Check prev node
@@ -685,8 +622,6 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
                                 line!()
                             )));
                         }
-                    } else {
-                        // node had no prev
                     }
                     Some(operation)
                 } else {
@@ -728,10 +663,10 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
         match (operation.change_prev_, operation.change_next_) {
             (Some((prev_i, new_next)), Some((next_i, new_prev))) => {
                 #[cfg(feature = "console_debug")]
-                    {
-                        assert_eq!(new_next, next_i);
-                        assert_eq!(prev_i, new_prev);
-                    }
+                {
+                    assert_eq!(new_next, next_i);
+                    assert_eq!(prev_i, new_prev);
+                }
                 match self.nodes_.get_mut(prev_i) {
                     Some(Some(node)) => {
                         node.next_ = new_next;
@@ -823,18 +758,18 @@ impl<'a, T: 'a, U: 'a> LinkedList<T, U>
 #[derive(Clone, Debug)]
 /// A double ended iterator
 pub struct ListIterator<'a, T: 'a, U: 'a>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     list_: &'a LinkedList<T, U>,
     my_next_: usize,
 }
 
 impl<'a, T: 'a, U: 'a> std::iter::Iterator for ListIterator<'a, T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     type Item = (&'a T, &'a U);
 
@@ -860,9 +795,9 @@ impl<'a, T: 'a, U: 'a> std::iter::Iterator for ListIterator<'a, T, U>
 }
 
 impl<'a, T: 'a, U: 'a> DoubleEndedIterator for ListIterator<'a, T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     #[inline]
     /// Step the iterator backward one step
@@ -885,9 +820,9 @@ impl<'a, T: 'a, U: 'a> DoubleEndedIterator for ListIterator<'a, T, U>
 /// It will have functionality like:
 /// prev(), next(), get(), erase(), lower_bound(), replace_key()
 pub struct PIterator<T, U>
-    where
-        T: Clone + Debug,
-        U: Clone + Debug,
+where
+    T: Clone + Debug,
+    U: Clone + Debug,
 {
     current: usize,
     list: Rc<RefCell<LinkedList<T, U>>>,
@@ -895,9 +830,9 @@ pub struct PIterator<T, U>
 
 #[allow(dead_code)]
 impl<T, U> PIterator<T, U>
-    where
-        T: Clone + Debug + Unpin + Ord + PartialOrd,
-        U: Clone + Debug + Unpin,
+where
+    T: Clone + Debug + Unpin + Ord + PartialOrd,
+    U: Clone + Debug + Unpin,
 {
     /// Initiates the pointer with a list, set current to the head of the list.
     pub fn new(list: Rc<RefCell<LinkedList<T, U>>>) -> Self {
@@ -998,7 +933,7 @@ impl<T, U> PIterator<T, U>
                     self.current,
                     file!(),
                     line!()
-                )))
+                )));
             }
             None => self.current = OUT_OF_BOUNDS,
         }
@@ -1098,8 +1033,8 @@ impl<T, U> PIterator<T, U>
     /// Lower bound item is the first element in the container whose key is not considered to go
     /// before position (i.e., either it is equivalent or goes after).
     /// Returns a Pointer where is_ok() returns false if no data is found
-    pub fn lower_bound(list:Rc<RefCell<LinkedList<T, U>>>, key: T, from_head: bool) -> Result<Self, MapError> {
-        let position = list.borrow().lower_bound(key, from_head)?;
+    pub fn lower_bound(list: Rc<RefCell<LinkedList<T, U>>>, key: T) -> Result<Self, MapError> {
+        let position = list.borrow().lower_bound(key)?;
         if let Some(position) = position {
             Ok(Self {
                 list,
@@ -1116,9 +1051,9 @@ impl<T, U> PIterator<T, U>
 }
 
 impl<T, U> Debug for PIterator<T, U>
-    where
-        T: Clone + Debug + Unpin + Ord + PartialOrd,
-        U: Clone + Debug + Unpin,
+where
+    T: Clone + Debug + Unpin + Ord + PartialOrd,
+    U: Clone + Debug + Unpin,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "PIterator({})", self.current)
@@ -1126,9 +1061,9 @@ impl<T, U> Debug for PIterator<T, U>
 }
 
 impl<T, U> Clone for PIterator<T, U>
-    where
-        T: Clone + Debug + Unpin + Ord + PartialOrd,
-        U: Clone + Debug + Unpin,
+where
+    T: Clone + Debug + Unpin + Ord + PartialOrd,
+    U: Clone + Debug + Unpin,
 {
     fn clone(&self) -> Self {
         Self {

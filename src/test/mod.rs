@@ -553,11 +553,11 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
     p.next()?;
     let v = p.get_k()?;
     assert_eq!(v, 3);
-    let v = p.remove_current(false)?;
+    let v = p.remove_current()?;
     assert_eq!(v, (3, 2));
-    let v = p.remove_current(false)?;
+    let v = p.remove_current()?;
     assert_eq!(v, (2, 1));
-    let v = p.remove_current(false)?;
+    let v = p.remove_current()?;
     assert_eq!(v, (1, 0));
     assert_eq!(ll.borrow().len(), 0);
     Ok(())

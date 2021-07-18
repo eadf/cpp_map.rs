@@ -603,7 +603,7 @@ where
     #[inline(always)]
     /// Remove the item at index, return item value if found
     fn remove_(&mut self, index: usize) -> Result<Option<(K, V)>, MapError> {
-        let rv = self.remove__(index, false)?;
+        let rv = self.remove__(index)?;
         Ok(Some(rv.1))
     }
 
@@ -611,7 +611,6 @@ where
     fn remove__(
         &mut self,
         index: usize,
-        only_disconnect: bool,
     ) -> Result<(usize, (K, V), usize), MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
@@ -670,7 +669,7 @@ where
                 None
             };
             if let Some(operation) = operation {
-                Some(self.erase_node_(operation, only_disconnect)?)
+                Some(self.erase_node_(operation)?)
             } else {
                 None
             }
@@ -690,8 +689,7 @@ where
     /// do the actual erase now that we know how to do it (work around for the borrow checker).
     fn erase_node_(
         &mut self,
-        operation: EraseOperation,
-        only_disconnect: bool,
+        operation: EraseOperation
     ) -> Result<(usize, (K, V), usize), MapError> {
         //println!("erase_operation {:?}", operation);
         match (operation.change_prev_, operation.change_next_) {
@@ -759,26 +757,17 @@ where
         }
         match self.nodes_.get_mut(operation.erase_) {
             Some(old_head) => {
-                if only_disconnect {
-                    // only disconnect the node, i.e. leave it in place - disconnected.
-                    if let Some(old_head) = old_head.take() {
-                        return Ok((
-                            old_head.prev_,
-                            (old_head.key_, old_head.value_),
-                            old_head.next_,
-                        ));
-                    }
-                } else {
-                    // Replace the node with None
-                    if let Some(old_head) = old_head.take() {
-                        self.id_pool_.push(operation.erase_);
-                        return Ok((
-                            old_head.prev_,
-                            (old_head.key_, old_head.value_),
-                            old_head.next_,
-                        ));
-                    }
+
+                // Replace the node with None
+                if let Some(old_head) = old_head.take() {
+                    self.id_pool_.push(operation.erase_);
+                    return Ok((
+                        old_head.prev_,
+                        (old_head.key_, old_head.value_),
+                        old_head.next_,
+                    ));
                 }
+
                 return Err(MapError::InternalError(format!(
                     "Should not happen error™ at {}:{}",
                     file!(),
@@ -995,11 +984,11 @@ where
     /// Remove the current element and return it. Move current to the old prev value if exist.
     /// Else pick old next index.
     /// Note: make sure that there are no other Pointer objects at this position.
-    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(K, V), MapError> {
+    pub fn remove_current(&mut self) -> Result<(K, V), MapError> {
         let rv = self
             .list
             .borrow_mut()
-            .remove__(self.current, only_disconnect)?;
+            .remove__(self.current)?;
         if rv.0 != OUT_OF_BOUNDS {
             self.current = rv.0;
         } else {

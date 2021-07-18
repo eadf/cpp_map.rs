@@ -34,36 +34,36 @@ pub enum MapError {
 mod test;
 
 #[derive(Clone, Debug)]
-struct Node<T, U>
+struct Node<K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
     prev_: usize,
     next_: usize,
-    key_: T,
-    value_: U,
+    key_: K,
+    value_: V,
 }
 
 /// A double linked min list.
 /// The head (top/front) of the list is the first item. Sorted Order::Less than other items.
 /// The tail (bottom/back) is the last item of the list. Sorted Order::Greater than other items.
 #[derive(Clone, Debug)]
-pub struct LinkedList<T, U>
+pub struct LinkedList<K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
     head_: usize,
     tail_: usize,
-    nodes_: Vec<Option<Node<T, U>>>,
+    nodes_: Vec<Option<Node<K, V>>>,
     id_pool_: Vec<usize>,
 }
 
-impl<T, U> Default for LinkedList<T, U>
+impl<K, V> Default for LinkedList<K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
     fn default() -> Self {
         Self {
@@ -87,12 +87,12 @@ struct EraseOperation {
 }
 
 #[allow(dead_code)]
-impl<'a, T: 'a, U: 'a> LinkedList<T, U>
+impl<'a, K: 'a, V: 'a> LinkedList<K, V>
 where
-    T: Clone + Debug + Ord + PartialOrd,
-    U: Clone + Debug,
+    K: Clone + Debug + Ord + PartialOrd,
+    V: Clone + Debug,
 {
-    pub fn iter(&self) -> ListIterator<'_, T, U> {
+    pub fn iter(&self) -> ListIterator<'_, K, V> {
         ListIterator {
             list_: self,
             my_next_: self.head_,
@@ -138,7 +138,7 @@ where
 
     #[inline(always)]
     /// Returns the item key at index
-    pub fn get_k(&self, index: usize) -> Result<&T, MapError> {
+    pub fn get_k(&self, index: usize) -> Result<&K, MapError> {
         let rv = self
             .nodes_
             .get(index)
@@ -150,7 +150,7 @@ where
 
     #[inline(always)]
     /// Returns the item value at index
-    pub fn get_v(&self, index: usize) -> Result<&U, MapError> {
+    pub fn get_v(&self, index: usize) -> Result<&V, MapError> {
         let rv = self
             .nodes_
             .get(index)
@@ -162,7 +162,7 @@ where
 
     #[inline(always)]
     /// Returns the item key and value at index
-    pub fn get_kv(&self, index: usize) -> Result<(&T, &U), MapError> {
+    pub fn get(&self, index: usize) -> Result<(&K, &V), MapError> {
         let rv = self
             .nodes_
             .get(index)
@@ -174,7 +174,7 @@ where
 
     #[inline(always)]
     /// Returns the previous key item of item at index
-    pub fn get_prev_k(&self, index: usize) -> Result<&T, MapError> {
+    pub fn get_prev_k(&self, index: usize) -> Result<&K, MapError> {
         let prev = self
             .nodes_
             .get(index)
@@ -196,7 +196,7 @@ where
 
     /// Add an item at the front of the list
     /// Note that this ignores the order of items, use with care.
-    fn push_front_(&mut self, key: T, value: U) -> Result<usize, MapError> {
+    fn push_front_(&mut self, key: K, value: V) -> Result<usize, MapError> {
         let insertion_index = if !self.id_pool_.is_empty() {
             self.id_pool_.pop().unwrap()
         } else {
@@ -241,7 +241,7 @@ where
     #[inline(always)]
     /// insert at position or append at back of the list
     /// Note that this ignores the order of items, use with care.
-    fn replace_or_push_(&mut self, insertion_index: usize, new_node: Node<T, U>) -> usize {
+    fn replace_or_push_(&mut self, insertion_index: usize, new_node: Node<K, V>) -> usize {
         if insertion_index == self.nodes_.len() {
             self.nodes_.push(Some(new_node));
         } else {
@@ -257,7 +257,7 @@ where
 
     /// insert a new value before the element at index
     /// Note that this ignores the order of items, use with care.
-    fn insert_before_(&mut self, index: usize, key: T, value: U) -> Result<usize, MapError> {
+    fn insert_before_(&mut self, index: usize, key: K, value: V) -> Result<usize, MapError> {
         if index == OUT_OF_BOUNDS {
             return self.push_front_(key, value);
         }
@@ -336,7 +336,7 @@ where
     }
 
     /// Add an item at the back of the list
-    fn push_back_(&mut self, key: T, value: U) -> Result<usize, MapError> {
+    fn push_back_(&mut self, key: K, value: V) -> Result<usize, MapError> {
         let insertion_index = if !self.id_pool_.is_empty() {
             self.id_pool_.pop().unwrap()
         } else {
@@ -386,15 +386,15 @@ where
     #[inline(always)]
     /// Insert item at position defined by Order (lesser first)
     /// This is the same as 'ordered_insert_pos()' with self.head_ as position hint
-    pub fn ordered_insert(&mut self, key: T, value: U) -> Result<usize, MapError> {
+    pub fn ordered_insert(&mut self, key: K, value: V) -> Result<usize, MapError> {
         self.ordered_insert_pos(key, value, self.head_)
     }
 
     /// Insert item by Order (lesser first) with a position hint.
     pub fn ordered_insert_pos(
         &mut self,
-        key: T,
-        value: U,
+        key: K,
+        value: V,
         position: usize,
     ) -> Result<usize, MapError> {
         if self.head_ == OUT_OF_BOUNDS {
@@ -481,7 +481,7 @@ where
     /// before position (i.e., either it is equivalent or goes after).
     /// If 'search_from_head' is true the search will be performed from the head otherwise from the tail.
     /// Returns None if no data is found
-    pub fn lower_bound(&self, key: T) -> Result<Option<usize>, MapError> {
+    pub fn lower_bound(&self, key: K) -> Result<Option<usize>, MapError> {
         #[cfg(feature = "console_debug")]
         {
             let mut iter = self.iter();
@@ -531,7 +531,7 @@ where
     /// assert_eq!(ll.pop_front().unwrap().unwrap(), (1_i8,0_i8));
     /// assert_eq!(ll.pop_front().unwrap().unwrap(), (2_i8,1_i8));
     /// ```
-    pub fn pop_front(&mut self) -> Result<Option<(T,U)>, MapError> {
+    pub fn pop_front(&mut self) -> Result<Option<(K,V)>, MapError> {
         self.remove_(self.head_)
     }
 
@@ -545,7 +545,7 @@ where
     /// assert_eq!(ll.pop_back().unwrap().unwrap(), (2_i8,1_i8));
     /// assert_eq!(ll.pop_back().unwrap().unwrap(), (1_i8,0_i8));
     /// ```
-    pub fn pop_back(&mut self) -> Result<Option<(T,U)>, MapError> {
+    pub fn pop_back(&mut self) -> Result<Option<(K,V)>, MapError> {
         self.remove_(self.tail_)
     }
 
@@ -558,7 +558,7 @@ where
     /// let _ = ll.ordered_insert(2, 1); // 1
     /// assert_eq!(ll.peek_front_k().unwrap(), &1_i8);
     /// ```
-    pub fn peek_front_k(&self) -> Option<&T> {
+    pub fn peek_front_k(&self) -> Option<&K> {
         match self.nodes_.get(self.head_) {
             Some(Some(node)) => Some(&node.key_),
             _ => None,
@@ -574,7 +574,7 @@ where
     /// let _ = ll.ordered_insert(2, 1); // 1
     /// assert_eq!(ll.peek_back_k().unwrap(), &2_i8);
     /// ```
-    pub fn peek_back_k(&self) -> Option<&T> {
+    pub fn peek_back_k(&self) -> Option<&K> {
         match self.nodes_.get(self.tail_) {
             Some(Some(node)) => Some(&node.key_),
             _ => None,
@@ -595,7 +595,7 @@ where
 
     #[inline(always)]
     /// Remove the item at index, return item value if found
-    fn remove_(&mut self, index: usize) -> Result<Option<(T,U)>, MapError> {
+    fn remove_(&mut self, index: usize) -> Result<Option<(K,V)>, MapError> {
         let rv = self.remove__(index, false)?;
         Ok(Some(rv.1))
     }
@@ -605,7 +605,7 @@ where
         &mut self,
         index: usize,
         only_disconnect: bool,
-    ) -> Result<(usize, (T,U), usize), MapError> {
+    ) -> Result<(usize, (K,V), usize), MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
                 "Could not find element to remove {}:{}",
@@ -685,7 +685,7 @@ where
         &mut self,
         operation: EraseOperation,
         only_disconnect: bool,
-    ) -> Result<(usize, (T,U), usize), MapError> {
+    ) -> Result<(usize, (K,V), usize), MapError> {
         //println!("erase_operation {:?}", operation);
         match (operation.change_prev_, operation.change_next_) {
             (Some((prev_i, new_next)), Some((next_i, new_prev))) => {
@@ -784,25 +784,25 @@ where
 
 #[derive(Clone, Debug)]
 /// A double ended iterator
-pub struct ListIterator<'a, T: 'a, U: 'a>
+pub struct ListIterator<'a, K: 'a, V: 'a>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
-    list_: &'a LinkedList<T, U>,
+    list_: &'a LinkedList<K, V>,
     my_next_: usize,
 }
 
-impl<'a, T: 'a, U: 'a> std::iter::Iterator for ListIterator<'a, T, U>
+impl<'a, K: 'a, V: 'a> std::iter::Iterator for ListIterator<'a, K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
-    type Item = (&'a T, &'a U);
+    type Item = (&'a K, &'a V);
 
     #[inline]
     /// Step the iterator forward one step
-    fn next(&mut self) -> Option<(&'a T, &'a U)> {
+    fn next(&mut self) -> Option<(&'a K, &'a V)> {
         if self.my_next_ == OUT_OF_BOUNDS {
             return None;
         }
@@ -821,14 +821,14 @@ where
     }
 }
 
-impl<'a, T: 'a, U: 'a> DoubleEndedIterator for ListIterator<'a, T, U>
+impl<'a, K: 'a, V: 'a> DoubleEndedIterator for ListIterator<'a, K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
     #[inline]
     /// Step the iterator backward one step
-    fn next_back(&mut self) -> Option<(&'a T, &'a U)> {
+    fn next_back(&mut self) -> Option<(&'a K, &'a V)> {
         if let Some(node) = self.list_.nodes_.get(self.my_next_)? {
             if self.my_next_ == self.list_.tail_ {
                 self.my_next_ = OUT_OF_BOUNDS;
@@ -846,23 +846,23 @@ where
 /// An effort to emulate a C++ std::map iterator in Rust.
 /// It will have functionality like:
 /// prev(), next(), get(), erase(), lower_bound(), replace_key()
-pub struct PIterator<T, U>
+pub struct PIterator<K, V>
 where
-    T: Clone + Debug,
-    U: Clone + Debug,
+    K: Clone + Debug,
+    V: Clone + Debug,
 {
     current: usize,
-    list: Rc<RefCell<LinkedList<T, U>>>,
+    list: Rc<RefCell<LinkedList<K, V>>>,
 }
 
 #[allow(dead_code)]
-impl<T, U> PIterator<T, U>
+impl<K, V> PIterator<K, V>
 where
-    T: Clone + Debug + Unpin + Ord + PartialOrd,
-    U: Clone + Debug + Unpin,
+    K: Clone + Debug + Unpin + Ord + PartialOrd,
+    V: Clone + Debug + Unpin,
 {
     /// Initiates the pointer with a list, set current to the head of the list.
-    pub fn new(list: Rc<RefCell<LinkedList<T, U>>>) -> Self {
+    pub fn new(list: Rc<RefCell<LinkedList<K, V>>>) -> Self {
         let head = list.borrow().head_;
         Self {
             current: head,
@@ -871,13 +871,13 @@ where
     }
 
     /// Initiates the pointer with a list, set index.
-    pub fn new_2(list: Rc<RefCell<LinkedList<T, U>>>, current: usize) -> Self {
+    pub fn new_2(list: Rc<RefCell<LinkedList<K, V>>>, current: usize) -> Self {
         Self { current, list }
     }
 
     #[inline(always)]
     /// Returns a clone of the data at current position
-    pub fn get_k(&self) -> Result<T, MapError> {
+    pub fn get_k(&self) -> Result<K, MapError> {
         if self.current == OUT_OF_BOUNDS {
             //panic!();
             return Err(MapError::InternalError(format!(
@@ -914,7 +914,7 @@ where
 
     #[inline(always)]
     /// Returns a clone of the data at current position
-    pub fn get_v(&self) -> Result<U, MapError> {
+    pub fn get_v(&self) -> Result<V, MapError> {
         let node = self
             .list
             .borrow()
@@ -1025,7 +1025,7 @@ where
     #[inline(always)]
     /// Replace current key. This will destroy the internal order of element if you
     /// replace an element with something out of order.
-    pub fn replace_key(&mut self, key: T) {
+    pub fn replace_key(&mut self, key: K) {
         let mut list = std::pin::Pin::new(self.list.borrow_mut());
         if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
             node.key_ = key;
@@ -1042,7 +1042,7 @@ where
     /// Remove the current element and return it. Move current to the old prev value if exist.
     /// Else pick old next index.
     /// Note: make sure that there are no other Pointer objects at this position.
-    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(T,U), MapError> {
+    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(K,V), MapError> {
         let rv = self
             .list
             .borrow_mut()
@@ -1060,7 +1060,7 @@ where
     /// Lower bound item is the first element in the container whose key is not considered to go
     /// before position (i.e., either it is equivalent or goes after).
     /// Returns a Pointer where is_ok() returns false if no data is found
-    pub fn lower_bound(list: Rc<RefCell<LinkedList<T, U>>>, key: T) -> Result<Self, MapError> {
+    pub fn lower_bound(list: Rc<RefCell<LinkedList<K, V>>>, key: K) -> Result<Self, MapError> {
         let position = list.borrow().lower_bound(key)?;
         if let Some(position) = position {
             Ok(Self {
@@ -1077,20 +1077,20 @@ where
     }
 }
 
-impl<T, U> Debug for PIterator<T, U>
+impl<K, V> Debug for PIterator<K, V>
 where
-    T: Clone + Debug + Unpin + Ord + PartialOrd,
-    U: Clone + Debug + Unpin,
+    K: Clone + Debug + Unpin + Ord + PartialOrd,
+    V: Clone + Debug + Unpin,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "PIterator({})", self.current)
     }
 }
 
-impl<T, U> Clone for PIterator<T, U>
+impl<K, V> Clone for PIterator<K, V>
 where
-    T: Clone + Debug + Unpin + Ord + PartialOrd,
-    U: Clone + Debug + Unpin,
+    K: Clone + Debug + Unpin + Ord + PartialOrd,
+    V: Clone + Debug + Unpin,
 {
     fn clone(&self) -> Self {
         Self {

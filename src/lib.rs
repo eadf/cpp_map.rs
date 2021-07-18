@@ -431,11 +431,17 @@ where
             // we are searching down the list, stop at first Less
             while let Some(Some(sample)) = self.nodes_.get(curr_index) {
                 // move past Ordering::Equal
-                if key.cmp(&sample.key_) == Ordering::Less {
-                    insert_before = Some(curr_index);
-                    break;
-                } else {
-                    curr_index = sample.next_;
+                match key.cmp(&sample.key_) {
+                    Ordering::Equal => {
+                        return Ok(curr_index); // Insert with an already existing key is a 'nop'
+                    }
+                    Ordering::Less => {
+                        insert_before = Some(curr_index);
+                        break;
+                    }
+                    _ => {
+                        curr_index = sample.next_;
+                    }
                 }
             }
         } else {
@@ -445,13 +451,19 @@ where
             //println!("search up, insert after equals. tmp insert_before:{:?}", insert_before);
             // we are searching up the list, stop at first Equal or Greater
             while let Some(Some(sample)) = self.nodes_.get(curr_index) {
-                if key.cmp(&sample.key_) != Ordering::Less {
-                    //println!("break: insert_before:{:?}", insert_before);
-                    break;
-                } else {
-                    insert_before = Some(curr_index);
-                    curr_index = sample.prev_;
-                    //println!("continue: curr_index:{}", curr_index);
+                match key.cmp(&sample.key_) {
+                    Ordering::Equal => {
+                        return Ok(curr_index); // Insert with an already existing key is a 'nop'
+                    }
+                    Ordering::Less => {
+                        insert_before = Some(curr_index);
+                        curr_index = sample.prev_;
+                        //println!("continue: curr_index:{}", curr_index);
+                    }
+                    _ => {
+                        //println!("break: insert_before:{:?}", insert_before);
+                        break;
+                    }
                 }
             }
         }
@@ -503,7 +515,7 @@ where
                 last_match = Some(curr_index);
                 curr_index = sample.prev_;
             } else {
-                return Ok(last_match)
+                return Ok(last_match);
             }
         }
         Ok(last_match)

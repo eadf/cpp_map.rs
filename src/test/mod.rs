@@ -141,20 +141,21 @@ fn linked_list_test6() -> Result<(), MapError> {
 }
 
 #[test]
+/// insert with the same key twice is a nop
 fn linked_list_test7() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let _ = ll.ordered_insert(5, 0)?; // 0
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![5_i8, 5]
+        vec![5_i8]
     );
     ll.clear();
     let _ = ll.ordered_insert(5, 0)?; // 0
-    let _ = ll.ordered_insert(5, 0)?; // 0
+    let _ = ll.ordered_insert(5, 1)?; // 0
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![5_i8, 5]
+        vec![5_i8]
     );
     Ok(())
 }
@@ -325,7 +326,8 @@ fn linked_list_test12() -> Result<(), MapError> {
     Ok(())
 }
 
-/// check that ordered insert handles duplicates correctly (check insertion direction)
+/// check that ordered insert handles duplicates correctly, insertion of duplicated keys should be
+/// ignored.
 #[test]
 fn linked_list_test13() -> Result<(), MapError> {
     let mut ll = LinkedList::<So, i8>::default();
@@ -337,72 +339,33 @@ fn linked_list_test13() -> Result<(), MapError> {
 
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![
-            So::new(1, 3),
-            So::new(2, 1),
-            So::new(2, 2),
-            So::new(2, 5),
-            So::new(3, 0)
-        ]
+        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
     );
     let _ = ll.ordered_insert(So::new(2, 6), 6)?; // 6
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![
-            So::new(1, 3),
-            So::new(2, 1),
-            So::new(2, 2),
-            So::new(2, 5),
-            So::new(2, 6),
-            So::new(3, 0)
-        ]
+        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
     );
     let _ = ll.ordered_insert(So::new(2, 7), 7)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![
-            So::new(1, 3),
-            So::new(2, 1),
-            So::new(2, 2),
-            So::new(2, 5),
-            So::new(2, 6),
-            So::new(2, 7),
-            So::new(3, 0)
-        ]
+        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, 8), 8, 5)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![
-            So::new(1, 3),
-            So::new(2, 1),
-            So::new(2, 2),
-            So::new(2, 5),
-            So::new(2, 6),
-            So::new(2, 7),
-            So::new(2, 8),
-            So::new(3, 0)
-        ]
+        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, 9), 9, 5)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![
-            So::new(1, 3),
-            So::new(2, 1),
-            So::new(2, 2),
-            So::new(2, 5),
-            So::new(2, 6),
-            So::new(2, 7),
-            So::new(2, 8),
-            So::new(2, 9),
-            So::new(3, 0)
-        ]
+        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
     );
     Ok(())
 }
 
-/// check that ordered insert handles duplicates correctly (check insertion direction)
+/// check that ordered insert handles duplicates correctly, insertion of duplicated keys should be
+/// ignored.
 #[test]
 fn linked_list_test14() -> Result<(), MapError> {
     let mut ll = LinkedList::<So, i8>::default();
@@ -410,14 +373,14 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 1), So::new(2, 0),]
+        vec![So::new(2, 1)]
     );
     ll.clear();
     let _ = ll.ordered_insert_pos(So::new(2, 1), 1, 0)?;
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 1), So::new(2, 0),]
+        vec![So::new(2, 1)]
     );
 
     let mut ll = LinkedList::<So, i8>::default();
@@ -426,7 +389,7 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1), So::new(2, 0),]
+        vec![So::new(1, 1), So::new(2, 1)]
     );
     ll.clear();
     let _ = ll.ordered_insert_pos(So::new(1, 1), 1, 0)?;
@@ -434,7 +397,7 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1), So::new(2, 0),]
+        vec![So::new(1, 1), So::new(2, 1)]
     );
     ll.clear();
 
@@ -443,12 +406,13 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1), So::new(2, 0),]
+        vec![So::new(1, 1), So::new(2, 1)]
     );
     Ok(())
 }
 
-/// check that ordered insert handles duplicates correctly (check insertion direction)
+/// check that ordered insert handles duplicates correctly, insertion of duplicated keys should be
+/// ignored.
 #[test]
 fn linked_list_test15() -> Result<(), MapError> {
     let mut ll = LinkedList::<So, i8>::default();
@@ -457,17 +421,18 @@ fn linked_list_test15() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, 0)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0), So::new(2, 1), So::new(2, 2),]
+        vec![So::new(2, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, -1), -1, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0), So::new(2, 1), So::new(2, 2), So::new(2, -1),]
+        vec![So::new(2, 0)]
     );
     Ok(())
 }
 
-/// check that ordered insert handles duplicates correctly (check insertion direction)
+/// check that ordered insert handles duplicates correctly, insertion of duplicated keys should be
+/// ignored.
 #[test]
 fn linked_list_test16() -> Result<(), MapError> {
     let mut ll = LinkedList::<So, i8>::default();
@@ -476,17 +441,18 @@ fn linked_list_test16() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0), So::new(2, 1), So::new(2, 2),]
+        vec![So::new(2, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, -1), -1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0), So::new(2, 1), So::new(2, 2), So::new(2, -1),]
+        vec![So::new(2, 0)]
     );
     Ok(())
 }
 
-/// check that ordered insert handles duplicates correctly (check insertion direction)
+/// check that ordered insert handles duplicates correctly, insertion of duplicated keys should be
+/// ignored.
 #[test]
 fn linked_list_test17() -> Result<(), MapError> {
     let mut ll = LinkedList::<So, i8>::default();
@@ -496,7 +462,7 @@ fn linked_list_test17() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 0), So::new(2, 1), So::new(2, 2), So::new(4, 4),]
+        vec![So::new(1, 0), So::new(2, 1), So::new(4, 4),]
     );
     Ok(())
 }

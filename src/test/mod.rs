@@ -165,24 +165,24 @@ fn linked_list_test8() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(5));
+    assert_eq!(v, Some((5,0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     assert_eq!(ll.len(), 0);
     ll.clear();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(5));
+    assert_eq!(v, Some((5,0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -192,13 +192,13 @@ fn linked_list_test9() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(5, 0)?;
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(5));
+    assert_eq!(v, Some((5,0)));
     let _ = ll.ordered_insert(1, 0)?;
     let _ = ll.ordered_insert(2, 1)?;
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     let _ = ll.ordered_insert(5, 0)?;
     let _ = ll.ordered_insert(1, 1)?;
     let _ = ll.ordered_insert(2, 2)?;
@@ -209,13 +209,13 @@ fn linked_list_test9() -> Result<(), MapError> {
     ll.clear();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(5));
+    assert_eq!(v, Some((5,0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     let _ = ll.ordered_insert(5, 0)?;
     let _ = ll.ordered_insert(1, 1)?;
     let _ = ll.ordered_insert(2, 2)?;
@@ -236,9 +236,9 @@ fn linked_list_test10() -> Result<(), MapError> {
         vec![1_i8, 2]
     );
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -254,11 +254,11 @@ fn linked_list_test11() -> Result<(), MapError> {
         vec![1_i8, 2, 3]
     );
     let v = ll.remove_(2)?;
-    assert_eq!(v, Some(3));
+    assert_eq!(v, Some((3,2)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -275,11 +275,11 @@ fn linked_list_test12() -> Result<(), MapError> {
         vec![1_i8, 2, 3]
     );
     let v = ll.remove_(2)?;
-    assert_eq!(v, Some(3));
+    assert_eq!(v, Some((3,2)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some(1));
+    assert_eq!(v, Some((1,0)));
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some(2));
+    assert_eq!(v, Some((2,1)));
 
     let _ = ll.ordered_insert(1, 1)?; // 1
     let _ = ll.ordered_insert(2, 0)?; // 0
@@ -529,11 +529,11 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
     let v = p.get_k()?;
     assert_eq!(v, 3);
     let v = p.remove_current(false)?;
-    assert_eq!(v, 3);
+    assert_eq!(v, (3,2));
     let v = p.remove_current(false)?;
-    assert_eq!(v, 2);
+    assert_eq!(v, (2,1));
     let v = p.remove_current(false)?;
-    assert_eq!(v, 1);
+    assert_eq!(v, (1,0));
     assert_eq!(ll.borrow().len(), 0);
     Ok(())
 }

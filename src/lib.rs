@@ -523,18 +523,41 @@ where
 
     #[inline(always)]
     /// Pop the head item
-    pub fn pop_front(&mut self) -> Result<Option<T>, MapError> {
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// let _ = ll.ordered_insert(1, 0); // 0
+    /// let _ = ll.ordered_insert(2, 1); // 1
+    /// assert_eq!(ll.pop_front().unwrap().unwrap(), (1_i8,0_i8));
+    /// assert_eq!(ll.pop_front().unwrap().unwrap(), (2_i8,1_i8));
+    /// ```
+    pub fn pop_front(&mut self) -> Result<Option<(T,U)>, MapError> {
         self.remove_(self.head_)
     }
 
     #[inline(always)]
     /// Pop the tail item
-    pub fn pop_back(&mut self) -> Result<Option<T>, MapError> {
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// let _ = ll.ordered_insert(1, 0); // 0
+    /// let _ = ll.ordered_insert(2, 1); // 1
+    /// assert_eq!(ll.pop_back().unwrap().unwrap(), (2_i8,1_i8));
+    /// assert_eq!(ll.pop_back().unwrap().unwrap(), (1_i8,0_i8));
+    /// ```
+    pub fn pop_back(&mut self) -> Result<Option<(T,U)>, MapError> {
         self.remove_(self.tail_)
     }
 
     #[inline(always)]
-    /// Pop the head item
+    /// Peek the head key
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// let _ = ll.ordered_insert(1, 0); // 0
+    /// let _ = ll.ordered_insert(2, 1); // 1
+    /// assert_eq!(ll.peek_front_k().unwrap(), &1_i8);
+    /// ```
     pub fn peek_front_k(&self) -> Option<&T> {
         match self.nodes_.get(self.head_) {
             Some(Some(node)) => Some(&node.key_),
@@ -543,7 +566,14 @@ where
     }
 
     #[inline(always)]
-    /// Pop the tail item
+    /// Peek the tail key
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// let _ = ll.ordered_insert(1, 0); // 0
+    /// let _ = ll.ordered_insert(2, 1); // 1
+    /// assert_eq!(ll.peek_back_k().unwrap(), &2_i8);
+    /// ```
     pub fn peek_back_k(&self) -> Option<&T> {
         match self.nodes_.get(self.tail_) {
             Some(Some(node)) => Some(&node.key_),
@@ -565,7 +595,7 @@ where
 
     #[inline(always)]
     /// Remove the item at index, return item value if found
-    fn remove_(&mut self, index: usize) -> Result<Option<T>, MapError> {
+    fn remove_(&mut self, index: usize) -> Result<Option<(T,U)>, MapError> {
         let rv = self.remove__(index, false)?;
         Ok(Some(rv.1))
     }
@@ -575,7 +605,7 @@ where
         &mut self,
         index: usize,
         only_disconnect: bool,
-    ) -> Result<(usize, T, usize), MapError> {
+    ) -> Result<(usize, (T,U), usize), MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
                 "Could not find element to remove {}:{}",
@@ -655,7 +685,7 @@ where
         &mut self,
         operation: EraseOperation,
         only_disconnect: bool,
-    ) -> Result<(usize, T, usize), MapError> {
+    ) -> Result<(usize, (T,U), usize), MapError> {
         //println!("erase_operation {:?}", operation);
         match (operation.change_prev_, operation.change_next_) {
             (Some((prev_i, new_next)), Some((next_i, new_prev))) => {
@@ -725,13 +755,13 @@ where
                 if only_disconnect {
                     // only disconnect the node, i.e. leave it in place - disconnected.
                     if let Some(old_head) = old_head {
-                        return Ok((old_head.prev_, old_head.key_.clone(), old_head.next_));
+                        return Ok((old_head.prev_, (old_head.key_.clone(), old_head.value_.clone()), old_head.next_));
                     }
                 } else {
                     // Replace the node with None
                     if let Some(old_head) = old_head.take() {
                         self.id_pool_.push(operation.erase_);
-                        return Ok((old_head.prev_, old_head.key_, old_head.next_));
+                        return Ok((old_head.prev_, (old_head.key_, old_head.value_), old_head.next_));
                     }
                 }
                 return Err(MapError::InternalError(format!(
@@ -981,13 +1011,13 @@ where
     }
 
     #[inline(always)]
-    /// Return true if pointer is at head position
+    /// Return true if pointer is at head position or if the list is empty
     pub fn is_at_head(&self) -> bool {
         self.current == self.list.borrow().head_
     }
 
     #[inline(always)]
-    /// Return true if pointer is at tail position
+    /// Return true if pointer is at tail position or if the list is empty
     pub fn is_at_tail(&self) -> bool {
         self.current == self.list.borrow().tail_
     }
@@ -1012,7 +1042,7 @@ where
     /// Remove the current element and return it. Move current to the old prev value if exist.
     /// Else pick old next index.
     /// Note: make sure that there are no other Pointer objects at this position.
-    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<T, MapError> {
+    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(T,U), MapError> {
         let rv = self
             .list
             .borrow_mut()

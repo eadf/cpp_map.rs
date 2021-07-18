@@ -23,10 +23,6 @@ struct cmpByKey {
 
 int main(int argc, const char * argv[]) {
     std::map<Key,int, cmpByKey> map;
-    map.clear();
-    // insert code here...
-    std::cout << "Hello, World!\n";
-    //Key
     map[Key(0,0)] = 0;
     map[Key(1,1)] = 1;
     map[Key(0,2)] = 2; // <- this only replaces value, not key

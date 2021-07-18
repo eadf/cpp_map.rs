@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 
 /// A test _S_orted _O_bject that only sorts by key
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct So {
     pub key: i32,
     pub value: i32,
@@ -165,24 +165,24 @@ fn linked_list_test8() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((5,0)));
+    assert_eq!(v, Some((5, 0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     assert_eq!(ll.len(), 0);
     ll.clear();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((5,0)));
+    assert_eq!(v, Some((5, 0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -192,13 +192,13 @@ fn linked_list_test9() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(5, 0)?;
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((5,0)));
+    assert_eq!(v, Some((5, 0)));
     let _ = ll.ordered_insert(1, 0)?;
     let _ = ll.ordered_insert(2, 1)?;
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     let _ = ll.ordered_insert(5, 0)?;
     let _ = ll.ordered_insert(1, 1)?;
     let _ = ll.ordered_insert(2, 2)?;
@@ -209,13 +209,13 @@ fn linked_list_test9() -> Result<(), MapError> {
     ll.clear();
     let _ = ll.ordered_insert(5, 0)?; // 0
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((5,0)));
+    assert_eq!(v, Some((5, 0)));
     let _ = ll.ordered_insert(1, 0)?; // 0
     let _ = ll.ordered_insert(2, 1)?; // 1
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.pop_front()?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     let _ = ll.ordered_insert(5, 0)?;
     let _ = ll.ordered_insert(1, 1)?;
     let _ = ll.ordered_insert(2, 2)?;
@@ -236,9 +236,9 @@ fn linked_list_test10() -> Result<(), MapError> {
         vec![1_i8, 2]
     );
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -254,11 +254,11 @@ fn linked_list_test11() -> Result<(), MapError> {
         vec![1_i8, 2, 3]
     );
     let v = ll.remove_(2)?;
-    assert_eq!(v, Some((3,2)));
+    assert_eq!(v, Some((3, 2)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
     assert_eq!(ll.len(), 0);
     Ok(())
 }
@@ -275,11 +275,11 @@ fn linked_list_test12() -> Result<(), MapError> {
         vec![1_i8, 2, 3]
     );
     let v = ll.remove_(2)?;
-    assert_eq!(v, Some((3,2)));
+    assert_eq!(v, Some((3, 2)));
     let v = ll.remove_(0)?;
-    assert_eq!(v, Some((1,0)));
+    assert_eq!(v, Some((1, 0)));
     let v = ll.remove_(1)?;
-    assert_eq!(v, Some((2,1)));
+    assert_eq!(v, Some((2, 1)));
 
     let _ = ll.ordered_insert(1, 1)?; // 1
     let _ = ll.ordered_insert(2, 0)?; // 0
@@ -339,27 +339,52 @@ fn linked_list_test13() -> Result<(), MapError> {
 
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
+        vec![
+            &So::new(1, 3),
+            &So::new(2, 1),
+            &So::new(2, 2),
+            &So::new(3, 0)
+        ]
     );
     let _ = ll.ordered_insert(So::new(2, 6), 6)?; // 6
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
+        vec![
+            &So::new(1, 3),
+            &So::new(2, 1),
+            &So::new(2, 2),
+            &So::new(3, 0)
+        ]
     );
     let _ = ll.ordered_insert(So::new(2, 7), 7)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
+        vec![
+            &So::new(1, 3),
+            &So::new(2, 1),
+            &So::new(2, 2),
+            &So::new(3, 0)
+        ]
     );
     let _ = ll.ordered_insert_pos(So::new(2, 8), 8, 5)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
+        vec![
+            &So::new(1, 3),
+            &So::new(2, 1),
+            &So::new(2, 2),
+            &So::new(3, 0)
+        ]
     );
     let _ = ll.ordered_insert_pos(So::new(2, 9), 9, 5)?; // 7
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 3), So::new(2, 1), So::new(2, 2), So::new(3, 0)]
+        vec![
+            &So::new(1, 3),
+            &So::new(2, 1),
+            &So::new(2, 2),
+            &So::new(3, 0)
+        ]
     );
     Ok(())
 }
@@ -373,14 +398,14 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 1)]
+        vec![&So::new(2, 1)]
     );
     ll.clear();
     let _ = ll.ordered_insert_pos(So::new(2, 1), 1, 0)?;
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 1)]
+        vec![&So::new(2, 1)]
     );
 
     let mut ll = LinkedList::<So, i8>::default();
@@ -389,7 +414,7 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1)]
+        vec![&So::new(1, 1), &So::new(2, 1)]
     );
     ll.clear();
     let _ = ll.ordered_insert_pos(So::new(1, 1), 1, 0)?;
@@ -397,7 +422,7 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1)]
+        vec![&So::new(1, 1), &So::new(2, 1)]
     );
     ll.clear();
 
@@ -406,7 +431,7 @@ fn linked_list_test14() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 0), 0, 1)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 1), So::new(2, 1)]
+        vec![&So::new(1, 1), &So::new(2, 1)]
     );
     Ok(())
 }
@@ -421,12 +446,12 @@ fn linked_list_test15() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, 0)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0)]
+        vec![&So::new(2, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, -1), -1, 2)?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0)]
+        vec![&So::new(2, 0)]
     );
     Ok(())
 }
@@ -441,12 +466,12 @@ fn linked_list_test16() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0)]
+        vec![&So::new(2, 0)]
     );
     let _ = ll.ordered_insert_pos(So::new(2, -1), -1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(2, 0)]
+        vec![&So::new(2, 0)]
     );
     Ok(())
 }
@@ -462,7 +487,7 @@ fn linked_list_test17() -> Result<(), MapError> {
     let _ = ll.ordered_insert_pos(So::new(2, 2), 1, ll.tail())?;
     assert_eq!(
         ll.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>(),
-        vec![So::new(1, 0), So::new(2, 1), So::new(4, 4),]
+        vec![&So::new(1, 0), &So::new(2, 1), &So::new(4, 4),]
     );
     Ok(())
 }
@@ -529,11 +554,11 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
     let v = p.get_k()?;
     assert_eq!(v, 3);
     let v = p.remove_current(false)?;
-    assert_eq!(v, (3,2));
+    assert_eq!(v, (3, 2));
     let v = p.remove_current(false)?;
-    assert_eq!(v, (2,1));
+    assert_eq!(v, (2, 1));
     let v = p.remove_current(false)?;
-    assert_eq!(v, (1,0));
+    assert_eq!(v, (1, 0));
     assert_eq!(ll.borrow().len(), 0);
     Ok(())
 }

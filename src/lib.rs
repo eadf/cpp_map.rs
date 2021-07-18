@@ -36,8 +36,8 @@ mod test;
 #[derive(Clone, Debug)]
 struct Node<K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     prev_: usize,
     next_: usize,
@@ -51,8 +51,8 @@ where
 #[derive(Clone, Debug)]
 pub struct LinkedList<K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     head_: usize,
     tail_: usize,
@@ -62,8 +62,8 @@ where
 
 impl<K, V> Default for LinkedList<K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     fn default() -> Self {
         Self {
@@ -89,8 +89,8 @@ struct EraseOperation {
 #[allow(dead_code)]
 impl<'a, K: 'a, V: 'a> LinkedList<K, V>
 where
-    K: Clone + Debug + Ord + PartialOrd,
-    V: Clone + Debug,
+    K: Debug + Ord + PartialOrd,
+    V: Debug,
 {
     pub fn iter(&self) -> ListIterator<'_, K, V> {
         ListIterator {
@@ -163,6 +163,13 @@ where
     #[inline(always)]
     /// Returns the item key and value at index
     pub fn get(&self, index: usize) -> Result<(&K, &V), MapError> {
+        if index == OUT_OF_BOUNDS {
+            return Err(MapError::InternalError(format!(
+                "Invalid pointer (moved past start/end). {}:{}",
+                file!(),
+                line!()
+            )));
+        }
         let rv = self
             .nodes_
             .get(index)
@@ -531,7 +538,7 @@ where
     /// assert_eq!(ll.pop_front().unwrap().unwrap(), (1_i8,0_i8));
     /// assert_eq!(ll.pop_front().unwrap().unwrap(), (2_i8,1_i8));
     /// ```
-    pub fn pop_front(&mut self) -> Result<Option<(K,V)>, MapError> {
+    pub fn pop_front(&mut self) -> Result<Option<(K, V)>, MapError> {
         self.remove_(self.head_)
     }
 
@@ -545,7 +552,7 @@ where
     /// assert_eq!(ll.pop_back().unwrap().unwrap(), (2_i8,1_i8));
     /// assert_eq!(ll.pop_back().unwrap().unwrap(), (1_i8,0_i8));
     /// ```
-    pub fn pop_back(&mut self) -> Result<Option<(K,V)>, MapError> {
+    pub fn pop_back(&mut self) -> Result<Option<(K, V)>, MapError> {
         self.remove_(self.tail_)
     }
 
@@ -595,7 +602,7 @@ where
 
     #[inline(always)]
     /// Remove the item at index, return item value if found
-    fn remove_(&mut self, index: usize) -> Result<Option<(K,V)>, MapError> {
+    fn remove_(&mut self, index: usize) -> Result<Option<(K, V)>, MapError> {
         let rv = self.remove__(index, false)?;
         Ok(Some(rv.1))
     }
@@ -605,7 +612,7 @@ where
         &mut self,
         index: usize,
         only_disconnect: bool,
-    ) -> Result<(usize, (K,V), usize), MapError> {
+    ) -> Result<(usize, (K, V), usize), MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
                 "Could not find element to remove {}:{}",
@@ -685,7 +692,7 @@ where
         &mut self,
         operation: EraseOperation,
         only_disconnect: bool,
-    ) -> Result<(usize, (K,V), usize), MapError> {
+    ) -> Result<(usize, (K, V), usize), MapError> {
         //println!("erase_operation {:?}", operation);
         match (operation.change_prev_, operation.change_next_) {
             (Some((prev_i, new_next)), Some((next_i, new_prev))) => {
@@ -754,14 +761,22 @@ where
             Some(old_head) => {
                 if only_disconnect {
                     // only disconnect the node, i.e. leave it in place - disconnected.
-                    if let Some(old_head) = old_head {
-                        return Ok((old_head.prev_, (old_head.key_.clone(), old_head.value_.clone()), old_head.next_));
+                    if let Some(old_head) = old_head.take() {
+                        return Ok((
+                            old_head.prev_,
+                            (old_head.key_, old_head.value_),
+                            old_head.next_,
+                        ));
                     }
                 } else {
                     // Replace the node with None
                     if let Some(old_head) = old_head.take() {
                         self.id_pool_.push(operation.erase_);
-                        return Ok((old_head.prev_, (old_head.key_, old_head.value_), old_head.next_));
+                        return Ok((
+                            old_head.prev_,
+                            (old_head.key_, old_head.value_),
+                            old_head.next_,
+                        ));
                     }
                 }
                 return Err(MapError::InternalError(format!(
@@ -786,8 +801,8 @@ where
 /// A double ended iterator
 pub struct ListIterator<'a, K: 'a, V: 'a>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     list_: &'a LinkedList<K, V>,
     my_next_: usize,
@@ -795,8 +810,8 @@ where
 
 impl<'a, K: 'a, V: 'a> std::iter::Iterator for ListIterator<'a, K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     type Item = (&'a K, &'a V);
 
@@ -823,8 +838,8 @@ where
 
 impl<'a, K: 'a, V: 'a> DoubleEndedIterator for ListIterator<'a, K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     #[inline]
     /// Step the iterator backward one step
@@ -848,8 +863,8 @@ where
 /// prev(), next(), get(), erase(), lower_bound(), replace_key()
 pub struct PIterator<K, V>
 where
-    K: Clone + Debug,
-    V: Clone + Debug,
+    K: Debug,
+    V: Debug,
 {
     current: usize,
     list: Rc<RefCell<LinkedList<K, V>>>,
@@ -878,67 +893,13 @@ where
     #[inline(always)]
     /// Returns a clone of the data at current position
     pub fn get_k(&self) -> Result<K, MapError> {
-        if self.current == OUT_OF_BOUNDS {
-            //panic!();
-            return Err(MapError::InternalError(format!(
-                "Invalid pointer (moved past start/end). {}:{}",
-                file!(),
-                line!()
-            )));
-        }
-        let node = self
-            .list
-            .borrow()
-            .nodes_
-            .get(self.current)
-            .ok_or_else(|| {
-                MapError::InternalError(format!(
-                    "Node {} not found. {}:{}",
-                    self.current,
-                    file!(),
-                    line!()
-                ))
-            })?
-            .as_ref()
-            .ok_or_else(|| {
-                MapError::InternalError(format!(
-                    "Node {} was None. {}:{}",
-                    self.current,
-                    file!(),
-                    line!()
-                ))
-            })?
-            .clone();
-        Ok(node.key_)
+        Ok(self.list.borrow().get(self.current)?.0.clone())
     }
 
     #[inline(always)]
     /// Returns a clone of the data at current position
     pub fn get_v(&self) -> Result<V, MapError> {
-        let node = self
-            .list
-            .borrow()
-            .nodes_
-            .get(self.current)
-            .ok_or_else(|| {
-                MapError::InternalError(format!(
-                    "Node {} not found. {}:{}",
-                    self.current,
-                    file!(),
-                    line!()
-                ))
-            })?
-            .as_ref()
-            .ok_or_else(|| {
-                MapError::InternalError(format!(
-                    "Node {} was None. {}:{}",
-                    self.current,
-                    file!(),
-                    line!()
-                ))
-            })?
-            .clone();
-        Ok(node.value_)
+        Ok(self.list.borrow().get(self.current)?.1.clone())
     }
 
     #[allow(clippy::should_implement_trait)]
@@ -951,10 +912,6 @@ where
             Some(Some(node)) => self.current = node.next_,
             // Some(None) nodes should be inaccessible
             Some(None) => {
-                eprintln!("next() failed at index:{}", self.current);
-                for (i, n) in list_borrow.nodes_.iter().enumerate() {
-                    eprintln!(" #{}, {:?}", i, n);
-                }
                 return Err(MapError::InternalError(format!(
                     "next() failed at index:{}. {}:{}",
                     self.current,
@@ -975,10 +932,6 @@ where
             Some(Some(node)) => self.current = node.prev_,
             // Some(None) nodes should be inaccessible
             Some(None) => {
-                eprintln!("prev() failed at index:{}", self.current);
-                for (i, n) in list_borrow.nodes_.iter().enumerate() {
-                    eprintln!(" #{}, {:?}", i, n);
-                }
                 return Err(MapError::InternalError(format!(
                     "prev() failed at index:{}. {}:{}",
                     self.current,
@@ -1042,7 +995,7 @@ where
     /// Remove the current element and return it. Move current to the old prev value if exist.
     /// Else pick old next index.
     /// Note: make sure that there are no other Pointer objects at this position.
-    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(K,V), MapError> {
+    pub fn remove_current(&mut self, only_disconnect: bool) -> Result<(K, V), MapError> {
         let rv = self
             .list
             .borrow_mut()
@@ -1079,8 +1032,8 @@ where
 
 impl<K, V> Debug for PIterator<K, V>
 where
-    K: Clone + Debug + Unpin + Ord + PartialOrd,
-    V: Clone + Debug + Unpin,
+    K: Debug + Unpin + Ord + PartialOrd,
+    V: Debug + Unpin,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "PIterator({})", self.current)
@@ -1089,8 +1042,8 @@ where
 
 impl<K, V> Clone for PIterator<K, V>
 where
-    K: Clone + Debug + Unpin + Ord + PartialOrd,
-    V: Clone + Debug + Unpin,
+    K: Debug + Unpin + Ord + PartialOrd,
+    V: Debug + Unpin,
 {
     fn clone(&self) -> Self {
         Self {

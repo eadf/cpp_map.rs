@@ -488,8 +488,6 @@ where
                 for (n, _) in self.iter() {
                     println!("key.cmp({:?})=={:?}-{:?}", n, n.cmp(&key), key.cmp(n));
                 }
-            } else {
-                //println!("{} flips found", flips);
             }
         }
 
@@ -498,7 +496,6 @@ where
             return Ok(None);
         }
         let mut last_match: Option<usize> = None;
-
         let mut curr_index = self.tail_;
         while let Some(Some(sample)) = self.nodes_.get(curr_index) {
             if key.cmp(&sample.key_) != Ordering::Greater {
@@ -506,22 +503,10 @@ where
                 last_match = Some(curr_index);
                 curr_index = sample.prev_;
             } else {
-                return if let Some(last_match) = last_match {
-                    //println!("found :{:?} ", sample.key);
-                    Ok(Some(last_match))
-                } else {
-                    //println!("found nothing :{:?}", last_match);
-                    Ok(None)
-                };
+                return Ok(last_match)
             }
         }
-        if let Some(last_match) = last_match {
-            //println!("found index:{:?} ", last_match);
-            Ok(Some(last_match))
-        } else {
-            //println!("found nothing :{:?}", last_match);
-            Ok(None)
-        }
+        Ok(last_match)
     }
 
     #[inline(always)]

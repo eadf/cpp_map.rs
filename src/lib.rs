@@ -96,6 +96,18 @@ where
     K: Debug + Ord + PartialOrd,
     V: Debug,
 {
+    /// Constructs a new, empty LinkedList<K,V> with the specified capacity.
+    /// The LinkedList will be able to hold exactly capacity elements without reallocating.
+    /// If capacity is 0, the list will not allocate.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            head_: OUT_OF_BOUNDS,
+            tail_: OUT_OF_BOUNDS,
+            nodes_: Vec::with_capacity(capacity),
+            id_pool_: Vec::with_capacity(capacity),
+        }
+    }
+
     pub fn iter(&self) -> ListIterator<'_, K, V> {
         ListIterator {
             list_: self,
@@ -612,10 +624,7 @@ where
     }
 
     /// Disconnect and remove the item at index, return item value if found
-    fn remove__(
-        &mut self,
-        index: usize,
-    ) -> Result<(usize, (K, V), usize), MapError> {
+    fn remove__(&mut self, index: usize) -> Result<(usize, (K, V), usize), MapError> {
         if self.head_ == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(
                 "Could not find element to remove {}:{}",
@@ -693,7 +702,7 @@ where
     /// do the actual erase now that we know how to do it (work around for the borrow checker).
     fn erase_node_(
         &mut self,
-        operation: EraseOperation
+        operation: EraseOperation,
     ) -> Result<(usize, (K, V), usize), MapError> {
         //println!("erase_operation {:?}", operation);
         match (operation.change_prev_, operation.change_next_) {
@@ -761,7 +770,6 @@ where
         }
         match self.nodes_.get_mut(operation.erase_) {
             Some(old_head) => {
-
                 // Replace the node with None
                 if let Some(old_head) = old_head.take() {
                     self.id_pool_.push(operation.erase_);
@@ -870,7 +878,7 @@ where
     V: Clone + Debug + Unpin,
 {
     /// Initiates the pointer with a list, set current to the head of the list.
-    pub fn new(list: Rc<RefCell<LinkedList<K, V>>>) -> Result<Self,MapError>  {
+    pub fn new(list: Rc<RefCell<LinkedList<K, V>>>) -> Result<Self, MapError> {
         let head = list.try_borrow()?.head_;
         Ok(Self {
             current: head,
@@ -939,41 +947,44 @@ where
 
     #[inline(always)]
     /// Move to the first element
-    pub fn move_to_head(&mut self) -> Result<(),MapError> {
+    pub fn move_to_head(&mut self) -> Result<(), MapError> {
         self.current = self.list.try_borrow()?.head_;
         Ok(())
     }
 
     #[inline(always)]
     /// Move to the last element
-    pub fn move_to_tail(&mut self)-> Result<(),MapError> {
+    pub fn move_to_tail(&mut self) -> Result<(), MapError> {
         self.current = self.list.try_borrow()?.tail_;
         Ok(())
     }
 
     #[inline(always)]
     /// Return true if pointer has *NOT* moved past beginning or end of the list
-    pub fn is_ok(&self) -> Result<bool,MapError> {
+    pub fn is_ok(&self) -> Result<bool, MapError> {
         Ok(self.current != OUT_OF_BOUNDS
-            && matches!(self.list.try_borrow()?.nodes_.get(self.current), Some(Some(_))))
+            && matches!(
+                self.list.try_borrow()?.nodes_.get(self.current),
+                Some(Some(_))
+            ))
     }
 
     #[inline(always)]
     /// Return true if pointer is at head position or if the list is empty
-    pub fn is_at_head(&self) -> Result<bool,MapError>  {
+    pub fn is_at_head(&self) -> Result<bool, MapError> {
         Ok(self.current == self.list.try_borrow()?.head_)
     }
 
     #[inline(always)]
     /// Return true if pointer is at tail position or if the list is empty
-    pub fn is_at_tail(&self) -> Result<bool,MapError>  {
+    pub fn is_at_tail(&self) -> Result<bool, MapError> {
         Ok(self.current == self.list.try_borrow()?.tail_)
     }
 
     #[inline(always)]
     /// Replace current key. This will destroy the internal order of element if you
     /// replace an element with something out of order.
-    pub fn replace_key(&mut self, key: K) -> Result<(),MapError>{
+    pub fn replace_key(&mut self, key: K) -> Result<(), MapError> {
         let mut list = std::pin::Pin::new(self.list.try_borrow_mut()?);
         if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
             node.key_ = key;
@@ -992,10 +1003,7 @@ where
     /// Else pick old next index.
     /// Note: make sure that there are no other Pointer objects at this position.
     pub fn remove_current(&mut self) -> Result<(K, V), MapError> {
-        let rv = self
-            .list
-            .try_borrow_mut()?
-            .remove__(self.current)?;
+        let rv = self.list.try_borrow_mut()?.remove__(self.current)?;
         if rv.0 != OUT_OF_BOUNDS {
             self.current = rv.0;
         } else {

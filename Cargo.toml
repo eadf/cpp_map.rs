@@ -1,7 +1,7 @@
 [package]
 name = "cpp_map"
 description = "A simple C++ std::map emulator"
-version = "0.0.3"
+version = "0.1.0"
 authors = ["eadf"]
 license = "MIT OR Apache-2.0"
 edition = "2018"

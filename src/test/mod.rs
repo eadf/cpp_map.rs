@@ -548,7 +548,7 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
         vec![1_i8, 2, 3]
     );
 
-    let mut p = PIterator::new(Rc::clone(&ll));
+    let mut p = PIterator::new(Rc::clone(&ll))?;
     p.next()?;
     p.next()?;
     let v = p.get_k()?;
@@ -567,9 +567,9 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
 fn linked_list_pointer_test02() -> Result<(), MapError> {
     let ll = Rc::from(RefCell::from(LinkedList::<i8, i8>::default()));
     let v = PIterator::lower_bound(Rc::clone(&ll), 1)?;
-    assert!(!v.is_ok());
+    assert!(!v.is_ok()?);
     let v = PIterator::lower_bound(Rc::clone(&ll), 1)?;
-    assert!(!v.is_ok());
+    assert!(!v.is_ok()?);
     Ok(())
 }
 
@@ -581,14 +581,14 @@ fn linked_list_pointer_test03() -> Result<(), MapError> {
     let _ = ll.borrow_mut().ordered_insert(3, 2)?; // 2
     let _ = ll.borrow_mut().ordered_insert(4, 3)?; // 3
     let lb = PIterator::lower_bound(Rc::clone(&ll), 3)?;
-    assert!(lb.is_ok());
+    assert!(lb.is_ok()?);
     assert_eq!(lb.get_k()?, 3);
 
     let lb = PIterator::lower_bound(Rc::clone(&ll), 1)?;
-    assert!(lb.is_ok());
+    assert!(lb.is_ok()?);
     assert_eq!(lb.get_k()?, 1);
 
     let v = PIterator::lower_bound(Rc::clone(&ll), 5)?;
-    assert!(!v.is_ok());
+    assert!(!v.is_ok()?);
     Ok(())
 }

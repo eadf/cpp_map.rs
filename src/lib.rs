@@ -28,6 +28,10 @@ pub const OUT_OF_BOUNDS: usize = usize::MAX;
 pub enum MapError {
     #[error("error: Some error with the linked list")]
     InternalError(String),
+    #[error(transparent)]
+    BorrowError(#[from] std::cell::BorrowError),
+    #[error(transparent)]
+    BorrowMutError(#[from] std::cell::BorrowMutError),
 }
 
 #[cfg(test)]
@@ -866,12 +870,12 @@ where
     V: Clone + Debug + Unpin,
 {
     /// Initiates the pointer with a list, set current to the head of the list.
-    pub fn new(list: Rc<RefCell<LinkedList<K, V>>>) -> Self {
-        let head = list.borrow().head_;
-        Self {
+    pub fn new(list: Rc<RefCell<LinkedList<K, V>>>) -> Result<Self,MapError>  {
+        let head = list.try_borrow()?.head_;
+        Ok(Self {
             current: head,
             list,
-        }
+        })
     }
 
     /// Initiates the pointer with a list, set index.
@@ -880,15 +884,15 @@ where
     }
 
     #[inline(always)]
-    /// Returns a clone of the data at current position
+    /// Returns a clone of the key at current position
     pub fn get_k(&self) -> Result<K, MapError> {
-        Ok(self.list.borrow().get(self.current)?.0.clone())
+        Ok(self.list.try_borrow()?.get(self.current)?.0.clone())
     }
 
     #[inline(always)]
-    /// Returns a clone of the data at current position
+    /// Returns a clone of the value at current position
     pub fn get_v(&self) -> Result<V, MapError> {
-        Ok(self.list.borrow().get(self.current)?.1.clone())
+        Ok(self.list.try_borrow()?.get(self.current)?.1.clone())
     }
 
     #[allow(clippy::should_implement_trait)]
@@ -896,7 +900,7 @@ where
     /// Move to the next element.
     /// Note that this is NOT a Rust iterator next() method.
     pub fn next(&mut self) -> Result<(), MapError> {
-        let list_borrow = self.list.borrow();
+        let list_borrow = self.list.try_borrow()?;
         match list_borrow.nodes_.get(self.current) {
             Some(Some(node)) => self.current = node.next_,
             // Some(None) nodes should be inaccessible
@@ -916,7 +920,7 @@ where
     #[inline(always)]
     /// Move to the previous element
     pub fn prev(&mut self) -> Result<(), MapError> {
-        let list_borrow = self.list.borrow();
+        let list_borrow = self.list.try_borrow()?;
         match list_borrow.nodes_.get(self.current) {
             Some(Some(node)) => self.current = node.prev_,
             // Some(None) nodes should be inaccessible
@@ -935,48 +939,51 @@ where
 
     #[inline(always)]
     /// Move to the first element
-    pub fn move_to_head(&mut self) {
-        self.current = self.list.borrow().head_
+    pub fn move_to_head(&mut self) -> Result<(),MapError> {
+        self.current = self.list.try_borrow()?.head_;
+        Ok(())
     }
 
     #[inline(always)]
     /// Move to the last element
-    pub fn move_to_tail(&mut self) {
-        self.current = self.list.borrow().tail_
+    pub fn move_to_tail(&mut self)-> Result<(),MapError> {
+        self.current = self.list.try_borrow()?.tail_;
+        Ok(())
     }
 
     #[inline(always)]
     /// Return true if pointer has *NOT* moved past beginning or end of the list
-    pub fn is_ok(&self) -> bool {
-        self.current != OUT_OF_BOUNDS
-            && matches!(self.list.borrow().nodes_.get(self.current), Some(Some(_)))
+    pub fn is_ok(&self) -> Result<bool,MapError> {
+        Ok(self.current != OUT_OF_BOUNDS
+            && matches!(self.list.try_borrow()?.nodes_.get(self.current), Some(Some(_))))
     }
 
     #[inline(always)]
     /// Return true if pointer is at head position or if the list is empty
-    pub fn is_at_head(&self) -> bool {
-        self.current == self.list.borrow().head_
+    pub fn is_at_head(&self) -> Result<bool,MapError>  {
+        Ok(self.current == self.list.try_borrow()?.head_)
     }
 
     #[inline(always)]
     /// Return true if pointer is at tail position or if the list is empty
-    pub fn is_at_tail(&self) -> bool {
-        self.current == self.list.borrow().tail_
+    pub fn is_at_tail(&self) -> Result<bool,MapError>  {
+        Ok(self.current == self.list.try_borrow()?.tail_)
     }
 
     #[inline(always)]
     /// Replace current key. This will destroy the internal order of element if you
     /// replace an element with something out of order.
-    pub fn replace_key(&mut self, key: K) {
-        let mut list = std::pin::Pin::new(self.list.borrow_mut());
+    pub fn replace_key(&mut self, key: K) -> Result<(),MapError>{
+        let mut list = std::pin::Pin::new(self.list.try_borrow_mut()?);
         if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
             node.key_ = key;
         }
+        Ok(())
     }
 
     #[inline(always)]
     /// returns current index
-    pub fn get_index(&self) -> usize {
+    pub fn current(&self) -> usize {
         self.current
     }
 
@@ -987,7 +994,7 @@ where
     pub fn remove_current(&mut self) -> Result<(K, V), MapError> {
         let rv = self
             .list
-            .borrow_mut()
+            .try_borrow_mut()?
             .remove__(self.current)?;
         if rv.0 != OUT_OF_BOUNDS {
             self.current = rv.0;
@@ -1003,7 +1010,7 @@ where
     /// before position (i.e., either it is equivalent or goes after).
     /// Returns a Pointer where is_ok() returns false if no data is found
     pub fn lower_bound(list: Rc<RefCell<LinkedList<K, V>>>, key: K) -> Result<Self, MapError> {
-        let position = list.borrow().lower_bound(key)?;
+        let position = list.try_borrow()?.lower_bound(key)?;
         if let Some(position) = position {
             Ok(Self {
                 list,

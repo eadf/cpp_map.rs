@@ -409,11 +409,40 @@ where
     #[inline(always)]
     /// Insert item at position defined by Order (lesser first)
     /// This is the same as 'ordered_insert_pos()' with self.head_ as position hint
+    /// Insert item by Order (lesser first) with a position hint.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// ll.ordered_insert(1,1);
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&1,&1));
+    /// ll.ordered_insert(0,0);
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&0,&0));
+    ///
+    /// ```
     pub fn ordered_insert(&mut self, key: K, value: V) -> Result<usize, MapError> {
         self.ordered_insert_pos(key, value, self.head_)
     }
 
     /// Insert item by Order (lesser first) with a position hint.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// ll.ordered_insert(1,1);
+    /// ll.ordered_insert_pos(2,2,0);
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&1,&1));
+    /// assert!(ll.get(ll.tail()).is_ok());
+    /// assert_eq!(ll.get(ll.tail()).unwrap(), (&2,&2));
+    ///
+    /// ```
     pub fn ordered_insert_pos(
         &mut self,
         key: K,
@@ -546,6 +575,8 @@ where
 
     #[inline(always)]
     /// Pop the head item
+    ///
+    /// # Examples
     /// ```
     /// # use cpp_map::LinkedList;
     /// let mut ll = LinkedList::<i8, i8>::default();
@@ -560,6 +591,8 @@ where
 
     #[inline(always)]
     /// Pop the tail item
+    ///
+    /// # Examples
     /// ```
     /// # use cpp_map::LinkedList;
     /// let mut ll = LinkedList::<i8, i8>::default();
@@ -574,6 +607,8 @@ where
 
     #[inline(always)]
     /// Peek the head key
+    ///
+    /// # Examples
     /// ```
     /// # use cpp_map::LinkedList;
     /// let mut ll = LinkedList::<i8, i8>::default();
@@ -590,6 +625,8 @@ where
 
     #[inline(always)]
     /// Peek the tail key
+    ///
+    /// # Examples
     /// ```
     /// # use cpp_map::LinkedList;
     /// let mut ll = LinkedList::<i8, i8>::default();

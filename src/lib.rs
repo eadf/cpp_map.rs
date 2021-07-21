@@ -13,6 +13,7 @@
 //! use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.
 //!
 //! I also needed to be able to replace the key of an already inserted item w/o altering the order. - Don't ask.
+//! Another gotcha is that insert(key, value) is a NOP if the key already exists, not even the new value will be used.
 //!
 //! The current implementation uses a double linked std::vec::Vec list, and it only supports sequential search.
 //!
@@ -411,6 +412,8 @@ where
     /// This is the same as 'ordered_insert_pos()' with self.head_ as position hint
     /// Insert item by Order (lesser first) with a position hint.
     ///
+    /// Note that insert(key, value) is a NOP if the key already exists, not even the new value will be used.
+    ///
     /// # Examples
     ///
     /// ```
@@ -429,7 +432,7 @@ where
     }
 
     /// Insert item by Order (lesser first) with a position hint.
-    ///
+    /// Note that insert(key, value) is a NOP if the key already exists, not even the new value will be used.
     /// # Examples
     ///
     /// ```

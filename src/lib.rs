@@ -179,6 +179,22 @@ where
 
     #[inline(always)]
     /// Returns the item key and value at index
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// ll.ordered_insert(1,1);
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&1,&1));
+    /// ll.ordered_insert(0,0);
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&0,&0));
+    /// assert!(ll.get(ll.tail()).is_ok());
+    /// assert_eq!(ll.get(ll.tail()).unwrap(), (&1,&1));
+    ///
+    /// ```
     pub fn get(&self, index: usize) -> Result<(&K, &V), MapError> {
         if index == OUT_OF_BOUNDS {
             return Err(MapError::InternalError(format!(

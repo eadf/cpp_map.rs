@@ -441,7 +441,9 @@ where
     /// ll.ordered_insert(0,0);
     /// assert!(ll.get(ll.head()).is_ok());
     /// assert_eq!(ll.get(ll.head()).unwrap(), (&0,&0));
-    ///
+    /// ll.ordered_insert(0,100); // <- this is a NOP
+    /// assert!(ll.get(ll.head()).is_ok());
+    /// assert_eq!(ll.get(ll.head()).unwrap(), (&0,&0));
     /// ```
     pub fn ordered_insert(&mut self, key: K, value: V) -> Result<usize, MapError> {
         self.ordered_insert_pos(key, value, self.head_)

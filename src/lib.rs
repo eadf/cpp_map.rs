@@ -554,6 +554,24 @@ where
     /// before position (i.e., either it is equivalent or goes after).
     /// If 'search_from_head' is true the search will be performed from the head otherwise from the tail.
     /// Returns None if no data is found
+    /// # Examples
+    ///
+    /// ```
+    /// # use cpp_map::LinkedList;
+    /// let mut ll = LinkedList::<i8, i8>::default();
+    /// ll.ordered_insert(1,1);
+    /// ll.ordered_insert(2,2);
+    /// ll.ordered_insert(3,3);
+    /// let lb = ll.get(ll.lower_bound(2).unwrap().unwrap()).unwrap();
+    /// assert_eq!(lb, (&2,&2));
+    /// let lb = ll.get(ll.lower_bound(0).unwrap().unwrap()).unwrap();
+    /// assert_eq!(lb, (&1,&1));
+    /// let lb = ll.get(ll.lower_bound(1).unwrap().unwrap()).unwrap();
+    /// assert_eq!(lb, (&1,&1));
+    /// let lb = ll.get(ll.lower_bound(3).unwrap().unwrap()).unwrap();
+    /// assert_eq!(lb, (&3,&3));
+    /// assert!( ll.lower_bound(4).unwrap().is_none());
+    /// ```
     pub fn lower_bound(&self, key: K) -> Result<Option<usize>, MapError> {
         #[cfg(feature = "console_debug")]
         {

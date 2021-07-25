@@ -983,6 +983,8 @@ where
     #[inline(always)]
     /// Move to the next element.
     /// Note that this is NOT a Rust iterator next() method.
+    /// Always check validity of the iterator with is_ok() after next()
+    // todo: change the return value to Result<bool, MapError>
     pub fn next(&mut self) -> Result<(), MapError> {
         let list_borrow = self.list.try_borrow()?;
         match list_borrow.nodes_.get(self.current) {
@@ -1003,6 +1005,8 @@ where
 
     #[inline(always)]
     /// Move to the previous element
+    /// Always check validity of the iterator with is_ok() after prev()
+    // todo: change the return value to Result<bool, MapError>
     pub fn prev(&mut self) -> Result<(), MapError> {
         let list_borrow = self.list.try_borrow()?;
         match list_borrow.nodes_.get(self.current) {

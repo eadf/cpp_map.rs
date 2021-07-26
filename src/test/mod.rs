@@ -493,6 +493,7 @@ fn linked_list_test17() -> Result<(), MapError> {
 }
 
 #[test]
+/// test LinkedList::lower_bound()
 fn linked_list_lower_bound_01() -> Result<(), MapError> {
     let mut ll = LinkedList::<i8, i8>::default();
     let _ = ll.ordered_insert(0, 0)?; // 0
@@ -530,6 +531,7 @@ fn linked_list_lower_bound_01() -> Result<(), MapError> {
 }
 
 #[test]
+/// test lower_bound() when list is empty
 fn linked_list_lower_bound_02() -> Result<(), MapError> {
     let ll = LinkedList::<i8, i8>::default();
     let v = ll.lower_bound(0)?;
@@ -538,6 +540,7 @@ fn linked_list_lower_bound_02() -> Result<(), MapError> {
 }
 
 #[test]
+/// test PIterator::remove_current
 fn linked_list_pointer_test01() -> Result<(), MapError> {
     let ll = Rc::from(RefCell::from(LinkedList::<i8, i8>::default()));
     let _ = ll.borrow_mut().ordered_insert(1, 0)?; // 0
@@ -564,6 +567,7 @@ fn linked_list_pointer_test01() -> Result<(), MapError> {
 }
 
 #[test]
+/// test PIterator::lower_bound
 fn linked_list_pointer_test02() -> Result<(), MapError> {
     let ll = Rc::from(RefCell::from(LinkedList::<i8, i8>::default()));
     let v = PIterator::lower_bound(Rc::clone(&ll), 1)?;
@@ -574,6 +578,7 @@ fn linked_list_pointer_test02() -> Result<(), MapError> {
 }
 
 #[test]
+/// test PIterator::lower_bound
 fn linked_list_pointer_test03() -> Result<(), MapError> {
     let ll = Rc::from(RefCell::from(LinkedList::<i8, i8>::default()));
     let _ = ll.borrow_mut().ordered_insert(1, 0)?; // 0

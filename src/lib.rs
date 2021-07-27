@@ -7,7 +7,7 @@
 
 //! A simple data structure emulating a C++ std::map. Probably not useful for anyone.
 //!
-//! I needed a data structure that could emulate a C++ std::map, and it's pointer based interators.
+//! I needed a data structure that could emulate a C++ std::map, and it's pointer based iterators.
 //!
 //! More specifically it needs to emulate the insertion position hint functionality as the keys I intend to
 //! use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.

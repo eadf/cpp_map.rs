@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/cpp_map/badge.svg)](https://docs.rs/cpp_map)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)
-[![dependency status](https://deps.rs/crate/cpp_map/0.1.0/status.svg)](https://deps.rs/crate/cpp_map/0.1.0)
+[![dependency status](https://deps.rs/crate/cpp_map/0.1.1/status.svg)](https://deps.rs/crate/cpp_map/0.1.1)
 
 
 # cpp_map.rs

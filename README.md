@@ -3,7 +3,7 @@
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Rust/badge.svg)
 [![Workflow](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)](https://github.com/eadf/cpp_map.rs/workflows/Clippy/badge.svg)
 [![dependency status](https://deps.rs/crate/cpp_map/0.1.1/status.svg)](https://deps.rs/crate/cpp_map/0.1.1)
-
+![license](https://img.shields.io/crates/l/cpp_map)
 
 # cpp_map.rs
 A simple C++ std::map emulator for Rust. Probably not useful for anyone. 

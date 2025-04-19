@@ -4,7 +4,7 @@ description = "A simple C++ std::map emulator"
 version = "0.1.1"
 authors = ["eadf"]
 license = "MIT OR Apache-2.0"
-edition = "2018"
+edition = "2024"
 readme = "README.md"
 repository = "https://github.com/eadf/cpp_map.rs"
 keywords = ["cpp", "map"]
@@ -20,10 +20,7 @@ exclude = [
 console_debug = []
 
 [dependencies]
-thiserror = "1.0"
-
-[badges]
-maintenance = { status = "actively-developed" }
+thiserror = "^2.0"
 
 [profile.release]
 lto = true

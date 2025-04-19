@@ -11,3 +11,4 @@ boostvoronoi.iml
 .vscode
 .project
 .idea
+/sync_files.py

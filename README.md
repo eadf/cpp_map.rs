@@ -6,17 +6,18 @@
 ![license](https://img.shields.io/crates/l/cpp_map)
 
 # cpp_map.rs
-A simple C++ std::map emulator for Rust. Probably not useful for anyone. 
+A simple C++ std::map emulator for Rust. Probably not useful for anyone else.
 
-I needed a data structure that could emulate a C++ std::map, and it's pointer based iterators.
-More specifically it needs to emulate the insertion position hint functionality as the keys I intend to 
-use are not entirely transitive. i.e., searching for insertion position from the head or tail makes a big difference.
+I needed a data structure that could emulate a C++ std::map, particularly its pointer-based iterators.
+More specifically, it needed to support the insertion position hint functionality, since the keys I’m using aren’t 
+entirely transitive — i.e., whether you search for the insertion position from the head or the tail can make a big difference.
 
-I also needed to be able to replace the key of an already inserted item w/o altering the order. - Don't ask. 
+I also needed the ability to replace the key of an already-inserted item without altering the order.
+(Don’t ask.)
 
-Another gotcha is that a C++ `std::map::insert(key, value)` is a NOP if the key already exists, not even the new value will be used.
+Another quirk I had to replicate: in C++, std::map::insert(key, value) is a no-op if the key already exists — it won’t even use the new value.
 
-The current implementation uses a double linked Vec list, and it only supports sequential search.
+The current implementation uses a doubly linked Vec list and only supports sequential search.
 
 ## License
 

@@ -36,7 +36,7 @@ pub enum MapError {
 }
 
 #[cfg(test)]
-mod test;
+mod test {}
 
 #[derive(Clone, Debug)]
 struct Node<K, V>
@@ -74,8 +74,8 @@ where
         Self {
             head_: OUT_OF_BOUNDS,
             tail_: OUT_OF_BOUNDS,
-            nodes_: Vec::new(),
-            id_pool_: Vec::new(),
+            nodes_: Vec::default(),
+            id_pool_: Vec::default(),
         }
     }
 }
@@ -92,7 +92,7 @@ struct EraseOperation {
 }
 
 #[allow(dead_code)]
-impl<'a, K: 'a, V: 'a> LinkedList<K, V>
+impl<K, V> LinkedList<K, V>
 where
     K: Debug + Ord + PartialOrd,
     V: Debug,
@@ -309,7 +309,7 @@ where
         };
 
         let new_node = if let Some(ref mut next_node) = self.nodes_.get_mut(index) {
-            if let Some(ref mut next_node) = next_node {
+            if let Some(next_node) = next_node {
                 //println!("next_node:{:?}", next_node);
                 // there were a previous head
                 let new_node = Node {
@@ -797,7 +797,7 @@ where
                             "Should not happen error™ at {}:{}",
                             file!(),
                             line!()
-                        )))
+                        )));
                     }
                 };
                 match self.nodes_.get_mut(next_i) {
@@ -809,7 +809,7 @@ where
                             "Should not happen error™ at {}:{}",
                             file!(),
                             line!()
-                        )))
+                        )));
                     }
                 };
             }
@@ -823,7 +823,7 @@ where
                         "Should not happen error™ at {}:{}",
                         file!(),
                         line!()
-                    )))
+                    )));
                 }
             },
             (Some((new_tail, new_tail_next)), None) => match self.nodes_.get_mut(new_tail) {
@@ -836,7 +836,7 @@ where
                         "Should not happen error™ at {}:{}",
                         file!(),
                         line!()
-                    )))
+                    )));
                 }
             },
             (None, None) => {
@@ -856,20 +856,18 @@ where
                     ));
                 }
 
-                return Err(MapError::InternalError(format!(
+                Err(MapError::InternalError(format!(
                     "Should not happen error™ at {}:{}",
-                    file!(),
-                    line!()
-                )));
-            }
-            _ => {
-                return Err(MapError::InternalError(format!(
-                    "Should not happen error™, element to erase not found {} at {}:{}",
-                    operation.erase_,
                     file!(),
                     line!()
                 )))
             }
+            _ => Err(MapError::InternalError(format!(
+                "Should not happen error™, element to erase not found {} at {}:{}",
+                operation.erase_,
+                file!(),
+                line!()
+            ))),
         }
     }
 }
@@ -1066,7 +1064,7 @@ where
     /// replace an element with something out of order.
     pub fn replace_key(&mut self, key: K) -> Result<(), MapError> {
         let mut list = std::pin::Pin::new(self.list.try_borrow_mut()?);
-        if let Some(Some(ref mut node)) = list.nodes_.get_mut(self.current) {
+        if let Some(Some(node)) = list.nodes_.get_mut(self.current) {
             node.key_ = key;
         }
         Ok(())

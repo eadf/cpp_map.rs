@@ -19,4 +19,4 @@ jobs:
       - name: install nightly
         run : rustup toolchain install nightly --component rustfmt,clippy --allow-downgrade
       - name: Run clippy
-        run: cargo +nightly clippy
+        run: cargo +nightly clippy-all
